@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Cubic</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09090d; --surface:#13131a; --surface2:#1a1a24;
+  --grid-bg:#17171f; --cell-bg:#20202c;
+  --accent:#f5a623; --accent-dim:rgba(245,166,35,.12);
+  --green:#38d48a; --blue:#5aacf5; --purple:#a855f7; --purple-dim:rgba(168,85,247,.12);
+  --red:#ef4444;
+  --text:#eeeaf4; --subtext:#55556a;
+  --gap:12px; --radius:14px; --cell:88px;
+  --anim:155ms; --ease-slide:cubic-bezier(0.22,1,0.36,1); --ease-bounce:cubic-bezier(0.34,1.56,0.64,1);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;-webkit-tap-highlight-color:transparent;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 65% 50% at 88% 12%,rgba(245,166,35,.08) 0%,transparent 55%),radial-gradient(ellipse 55% 42% at 12% 88%,rgba(90,172,245,.07) 0%,transparent 55%),radial-gradient(ellipse 45% 38% at 50% 50%,rgba(168,85,247,.04) 0%,transparent 60%);}
+
+/* ── START ── */
+#start-screen{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);}
+#start-screen::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 65% 50% at 88% 12%,rgba(245,166,35,.1) 0%,transparent 55%),radial-gradient(ellipse 55% 42% at 12% 88%,rgba(90,172,245,.09) 0%,transparent 55%),radial-gradient(ellipse 45% 38% at 50% 50%,rgba(168,85,247,.06) 0%,transparent 60%);}
+.start-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:0;}
+.start-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px;}
+.start-logo-ai{font-family:'Black Han Sans',sans-serif;font-size:clamp(1rem,4vw,1.6rem);letter-spacing:.45em;text-transform:uppercase;background:linear-gradient(130deg,#a855f7,#5aacf5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 16px rgba(168,85,247,.5));margin-bottom:-4px;}
+.start-logo{font-family:'Black Han Sans',sans-serif;font-size:clamp(4.5rem,16vw,8rem);background:linear-gradient(130deg,#f5a623 20%,#e8d460 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(245,166,35,.5));animation:logoFloat 3s ease-in-out infinite;line-height:1;}
+@keyframes logoFloat{0%,100%{filter:drop-shadow(0 0 30px rgba(245,166,35,.4))}50%{filter:drop-shadow(0 0 60px rgba(245,166,35,.75))}}
+.start-maxinfo{font-size:.72rem;color:rgba(245,166,35,.7);letter-spacing:.08em;background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.18);border-radius:8px;padding:5px 16px;margin-bottom:14px;}
+.players-panel{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px;width:100%;max-width:340px;}
+.players-live-row{display:flex;align-items:center;gap:8px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:livePulse 1.4s ease-in-out infinite;}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--green)}50%{opacity:.5;box-shadow:0 0 14px var(--green)}}
+.players-count-label{font-family:'Black Han Sans',sans-serif;font-size:1.05rem;color:var(--green);}
+.players-count-label span{font-size:1.5rem;}
+.players-avatars{display:flex;align-items:center;height:32px;}
+.avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;margin-left:-8px;animation:avatarIn .35s var(--ease-bounce) both;}
+.avatar:first-child{margin-left:0;}
+@keyframes avatarIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.avatar-more{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:2px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--subtext);margin-left:-8px;}
+.players-scroll{width:100%;max-width:340px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:8px 10px;max-height:90px;overflow-y:auto;}
+.players-scroll::-webkit-scrollbar{width:3px;}
+.players-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.player-row{display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);animation:rowIn .25s ease both;}
+.player-row:last-child{border-bottom:none;}
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.player-avatar-sm{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0;}
+.player-name{font-size:.72rem;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.player-score{font-family:'Black Han Sans',sans-serif;font-size:.72rem;color:var(--accent);}
+.player-you{font-size:.58rem;color:var(--blue);margin-left:3px;}
+.players-empty{font-size:.72rem;color:var(--subtext);text-align:center;padding:4px 0;}
+.start-best-wrap{display:flex;gap:12px;margin-bottom:24px;}
+.start-best-box{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:8px 20px;text-align:center;min-width:100px;}
+.start-best-label{font-size:.58rem;letter-spacing:.18em;color:var(--subtext);text-transform:uppercase;margin-bottom:3px;}
+.start-best-val{font-family:'Black Han Sans',sans-serif;font-size:1.5rem;color:var(--accent);}
+.start-best-val.blue{color:var(--blue);}
+.start-btn{background:linear-gradient(130deg,#f5a623,#e8a020);border:none;border-radius:16px;padding:16px 52px;font-family:'Black Han Sans',sans-serif;font-size:1.3rem;color:#000;letter-spacing:.06em;cursor:pointer;box-shadow:0 6px 30px rgba(245,166,35,.4);transition:transform .15s,box-shadow .15s;animation:btnPulse 2.2s ease-in-out infinite;}
+.start-btn:hover{transform:translateY(-3px) scale(1.03);}
+.start-btn:active{transform:translateY(0) scale(0.98);}
+@keyframes btnPulse{0%,100%{box-shadow:0 6px 30px rgba(245,166,35,.35)}50%{box-shadow:0 6px 50px rgba(245,166,35,.6)}}
+.start-sub{font-size:.65rem;color:var(--subtext);letter-spacing:.1em;margin-top:14px;}
+.start-particles{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.particle{position:absolute;border-radius:50%;opacity:0;animation:pFloat linear infinite;}
+@keyframes pFloat{0%{opacity:0;transform:translateY(100vh) scale(0)}10%{opacity:.6}90%{opacity:.2}100%{opacity:0;transform:translateY(-10vh) scale(1.2)}}
+#start-screen.hide{animation:screenOut .5s ease forwards;}
+@keyframes screenOut{to{opacity:0;transform:scale(1.04);pointer-events:none;}}
+
+/* ── CELEBRATE ── */
+#celebrate-screen{position:fixed;inset:0;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(9,9,13,.96);backdrop-filter:blur(12px);}
+#celebrate-screen.show{display:flex;animation:fIn .5s ease both;}
+.celeb-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px;}
+.celeb-emoji{font-size:4rem;margin-bottom:12px;animation:emojiSpin 1.5s ease-in-out infinite alternate;}
+@keyframes emojiSpin{0%{transform:scale(1) rotate(-5deg)}100%{transform:scale(1.15) rotate(5deg)}}
+.celeb-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(2rem,8vw,3.5rem);background:linear-gradient(130deg,#f5a623,#e8d460,#38d48a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;line-height:1.1;}
+.celeb-num{font-family:'Black Han Sans',sans-serif;font-size:clamp(3rem,12vw,6rem);background:linear-gradient(130deg,#f5a623,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:numGlow 1.5s ease-in-out infinite;margin-bottom:4px;}
+@keyframes numGlow{0%,100%{filter:drop-shadow(0 0 20px rgba(255,215,0,.5))}50%{filter:drop-shadow(0 0 60px rgba(255,215,0,.9))}}
+.celeb-sub{font-size:.88rem;color:rgba(238,234,244,.7);margin-bottom:6px;line-height:1.7;}
+.celeb-next-hint{font-size:.72rem;color:var(--purple);letter-spacing:.1em;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);border-radius:10px;padding:8px 18px;margin-bottom:24px;}
+.celeb-btn{background:linear-gradient(130deg,#a855f7,#7c3aed);border:none;border-radius:16px;padding:15px 44px;font-family:'Black Han Sans',sans-serif;font-size:1.1rem;color:#fff;cursor:pointer;box-shadow:0 6px 30px rgba(168,85,247,.45);transition:transform .15s;margin-bottom:10px;}
+.celeb-btn:hover{transform:translateY(-3px) scale(1.03);}
+.celeb-score{font-size:.75rem;color:var(--subtext);margin-top:6px;}
+.celeb-particles{position:fixed;inset:0;pointer-events:none;}
+.c-particle{position:absolute;width:8px;height:8px;border-radius:2px;opacity:0;animation:cDrop linear forwards;}
+@keyframes cDrop{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:0;transform:translateY(110vh) rotate(720deg)}}
+
+/* ── MENU OVERLAY ── */
+#menu-overlay{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-end;justify-content:flex-end;pointer-events:none;}
+#menu-overlay.open{pointer-events:all;}
+#menu-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);opacity:0;transition:opacity .28s ease;}
+#menu-overlay.open #menu-backdrop{opacity:1;}
+#menu-drawer{position:relative;z-index:1;background:var(--surface2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:24px;transform:translateY(100%);transition:transform .32s var(--ease-bounce);}
+#menu-overlay.open #menu-drawer{transform:translateY(0);}
+.menu-handle{width:40px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;margin:0 auto 20px;}
+.menu-title{font-family:'Black Han Sans',sans-serif;font-size:1.1rem;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.menu-title-icon{font-size:1.2rem;}
+.menu-section{margin-bottom:20px;}
+.menu-section-label{font-size:.6rem;letter-spacing:.18em;color:var(--subtext);text-transform:uppercase;margin-bottom:10px;}
+.menu-btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+.menu-action-btn{flex:1;min-width:120px;background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 16px;cursor:pointer;text-align:left;transition:background .18s,transform .1s,border-color .18s;}
+.menu-action-btn:hover{background:rgba(255,255,255,.07);transform:translateY(-2px);}
+.menu-action-btn:active{transform:translateY(0);}
+.menu-action-btn .mab-icon{font-size:1.4rem;margin-bottom:6px;}
+.menu-action-btn .mab-label{font-family:'Black Han Sans',sans-serif;font-size:.85rem;color:var(--text);}
+.menu-action-btn .mab-sub{font-size:.62rem;color:var(--subtext);margin-top:2px;}
+.menu-action-btn.blue{border-color:rgba(90,172,245,.2);}
+.menu-action-btn.blue .mab-label{color:var(--blue);}
+.menu-action-btn.purple{border-color:rgba(168,85,247,.2);}
+.menu-action-btn.purple .mab-label{color:var(--purple);}
+.menu-action-btn.red{border-color:rgba(239,68,68,.2);}
+.menu-action-btn.red .mab-label{color:var(--red);}
+
+/* Country Ranking */
+.ranking-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.ranking-tab{flex:1;padding:7px 0;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;font-family:'Black Han Sans',sans-serif;font-size:.75rem;color:var(--subtext);cursor:pointer;text-align:center;transition:all .18s;}
+.ranking-tab.active{background:rgba(245,166,35,.12);border-color:rgba(245,166,35,.4);color:var(--accent);}
+.country-select-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:9px 12px;}
+.country-select-row label{font-size:.65rem;color:var(--subtext);letter-spacing:.1em;white-space:nowrap;}
+.country-select{flex:1;background:transparent;border:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:.82rem;outline:none;cursor:pointer;}
+.country-select option{background:var(--surface2);color:var(--text);}
+.ranking-list{display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto;}
+.ranking-list::-webkit-scrollbar{width:3px;}
+.ranking-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.ranking-row{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid rgba(255,255,255,.05);border-radius:11px;padding:9px 12px;transition:background .15s;animation:rowIn .22s ease both;}
+.ranking-row.me{background:rgba(245,166,35,.08);border-color:rgba(245,166,35,.25);}
+.rank-num{font-family:'Black Han Sans',sans-serif;font-size:.85rem;color:var(--subtext);min-width:22px;text-align:center;}
+.rank-num.gold{color:#ffd700;text-shadow:0 0 10px rgba(255,215,0,.5);}
+.rank-num.silver{color:#c0c8d0;}
+.rank-num.bronze{color:#cd7f32;}
+.rank-flag{font-size:1.1rem;line-height:1;}
+.rank-info{flex:1;min-width:0;}
+.rank-name{font-size:.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;}
+.rank-you{font-size:.58rem;color:var(--blue);background:rgba(90,172,245,.1);border-radius:5px;padding:1px 5px;}
+.rank-country{font-size:.62rem;color:var(--subtext);}
+.rank-score{font-family:'Black Han Sans',sans-serif;font-size:.9rem;color:var(--accent);text-align:right;}
+.rank-tile{font-size:.62rem;color:var(--subtext);text-align:right;}
+.ranking-empty{font-size:.75rem;color:var(--subtext);text-align:center;padding:20px 0;}
+.ranking-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:18px 0;font-size:.75rem;color:var(--subtext);}
+.country-my-row{display:flex;align-items:center;justify-content:space-between;background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.18);border-radius:11px;padding:9px 13px;margin-bottom:10px;}
+.country-my-label{font-size:.65rem;color:var(--subtext);}
+.country-my-val{font-family:'Black Han Sans',sans-serif;font-size:.88rem;color:var(--accent);}
+.ranking-refresh-btn{background:none;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 14px;color:var(--subtext);font-size:.65rem;cursor:pointer;transition:all .18s;margin:10px auto 0;display:block;}
+.ranking-refresh-btn:hover{border-color:rgba(245,166,35,.3);color:var(--accent);}
+
+/* GAME */
+.wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:0;}
+/* ── TOP BAR with menu btn ── */
+.top-bar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:500px;margin-bottom:4px;}
+h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);letter-spacing:.06em;background:linear-gradient(130deg,#f5a623 20%,#e8d460 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(245,166,35,.38));}
+.menu-open-btn{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:10px;width:38px;height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:background .18s,border-color .18s;}
+.menu-open-btn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);}
+.menu-open-btn span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:transform .2s;}
+.mode-indicator{font-size:.65rem;color:var(--purple);letter-spacing:.12em;text-transform:uppercase;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.18);border-radius:7px;padding:3px 12px;margin-bottom:6px;display:none;}
+.mode-indicator.show{display:block;}
+.scorebar{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;}
+.score-box{background:var(--surface);border:1px solid rgba(255,255,255,.05);border-radius:11px;padding:6px 12px;text-align:center;min-width:70px;}
+.score-label{font-size:.55rem;letter-spacing:.2em;color:var(--subtext);text-transform:uppercase;margin-bottom:2px;}
+.score-value{font-family:'Black Han Sans',sans-serif;font-size:1.2rem;color:var(--accent);}
+.score-value.blue{color:var(--blue);}
+.score-value.pop{animation:sPop .28s var(--ease-bounce) both;}
+@keyframes sPop{0%{transform:scale(1)}50%{transform:scale(1.38);filter:brightness(1.6)}100%{transform:scale(1)}}
+.combo-banner{height:34px;display:flex;align-items:center;justify-content:center;margin-bottom:7px;}
+.combo-badge{display:none;align-items:center;gap:6px;background:linear-gradient(130deg,rgba(239,68,68,.18),rgba(245,166,35,.18));border:1px solid rgba(239,68,68,.4);border-radius:20px;padding:5px 14px;animation:comboPop .3s var(--ease-bounce) both;}
+.combo-badge.show{display:flex;}
+@keyframes comboPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.combo-text{font-family:'Black Han Sans',sans-serif;font-size:1rem;color:#f97316;}
+.combo-mult{font-size:.72rem;color:rgba(245,166,35,.8);margin-left:2px;}
+.controls{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;}
+.btn{background:var(--surface);border:1px solid rgba(255,255,255,.07);color:var(--text);font-family:'Black Han Sans',sans-serif;font-size:.8rem;letter-spacing:.05em;padding:7px 12px;border-radius:10px;cursor:pointer;transition:background .18s,transform .1s,border-color .18s;white-space:nowrap;}
+.btn:hover{background:var(--accent-dim);border-color:rgba(245,166,35,.5);transform:translateY(-2px);}
+.btn:active{transform:translateY(0);}
+.btn-voice{border-color:rgba(90,172,245,.28);color:var(--blue);}
+.btn-voice:hover{background:rgba(90,172,245,.1);}
+.btn-voice.listening{background:rgba(90,172,245,.16);border-color:var(--blue);animation:vPulse 1.1s ease-in-out infinite;}
+@keyframes vPulse{0%,100%{box-shadow:0 0 0 0 rgba(90,172,245,.45)}50%{box-shadow:0 0 0 8px rgba(90,172,245,0)}}
+.btn-hint{border-color:rgba(168,85,247,.3);color:var(--purple);}
+.btn-hint:hover{background:var(--purple-dim);}
+.btn-hint.loading{background:var(--purple-dim);border-color:var(--purple);pointer-events:none;animation:hPulse 1.2s ease-in-out infinite;}
+.btn-hint.disabled{opacity:.38;pointer-events:none;filter:grayscale(.6);}
+@keyframes hPulse{0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,.4)}50%{box-shadow:0 0 0 7px rgba(168,85,247,0)}}
+.status-bar{height:22px;display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:.7rem;color:var(--subtext);letter-spacing:.08em;min-width:280px;justify-content:center;transition:color .25s;}
+.status-bar.active{color:var(--blue);}.status-bar.success{color:var(--green);}.status-bar.error{color:var(--red);}
+.voice-wave{display:none;align-items:center;gap:3px;height:14px;}
+.status-bar.active .voice-wave{display:flex;}
+.voice-wave span{display:block;width:3px;border-radius:2px;background:var(--blue);animation:wv .75s ease-in-out infinite;}
+.voice-wave span:nth-child(1){height:4px}.voice-wave span:nth-child(2){height:9px;animation-delay:.1s}.voice-wave span:nth-child(3){height:14px;animation-delay:.2s}.voice-wave span:nth-child(4){height:9px;animation-delay:.3s}.voice-wave span:nth-child(5){height:4px;animation-delay:.4s}
+@keyframes wv{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.28)}}
+.hint-cooldown-wrap{height:4px;width:100%;max-width:460px;background:rgba(168,85,247,.1);border-radius:4px;margin-bottom:6px;overflow:hidden;display:none;}
+.hint-cooldown-wrap.show{display:block;}
+.hint-cooldown-bar{height:100%;background:var(--purple);border-radius:4px;width:100%;}
+.grid-wrapper{position:relative;}
+.grid-bg{background:var(--grid-bg);border-radius:18px;padding:var(--gap);display:grid;gap:var(--gap);box-shadow:0 14px 55px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.05);}
+.grid-bg.shake{animation:shake .38s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px) rotate(-.5deg)}40%{transform:translateX(6px) rotate(.4deg)}60%{transform:translateX(-5px) rotate(-.3deg)}80%{transform:translateX(3px)}}
+.cell-bg{background:var(--cell-bg);border-radius:var(--radius);position:relative;}
+.cell-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.025) 0%,transparent 50%);border-radius:inherit;}
+.tile-layer{position:absolute;pointer-events:none;}
+.tile{position:absolute;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:1.8rem;will-change:transform;z-index:1;transition:transform var(--anim) var(--ease-slide);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 3px 10px rgba(0,0,0,.34);}
+.tile.is-new{animation:tNew .24s var(--ease-bounce) both;}
+@keyframes tNew{from{transform:var(--base-tx) scale(0) rotate(-6deg);opacity:0}to{transform:var(--base-tx) scale(1) rotate(0);opacity:1}}
+.tile.is-merge{animation:tMerge .32s var(--ease-bounce) both;z-index:2;}
+@keyframes tMerge{0%{transform:var(--base-tx) scale(1)}28%{transform:var(--base-tx) scale(1.28);filter:brightness(1.4)}58%{transform:var(--base-tx) scale(.9)}78%{transform:var(--base-tx) scale(1.08)}100%{transform:var(--base-tx) scale(1)}}
+.tile.hint-tile{outline:3px solid var(--purple);outline-offset:3px;z-index:3;animation:hTile 1.5s ease-in-out infinite;}
+@keyframes hTile{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22) drop-shadow(0 0 12px rgba(168,85,247,.7))}}
+.t2{background:#2e2e42;color:#c0bcd0}.t4{background:#3c2e44;color:#d2c6da}.t8{background:#b05820;color:#fff}.t16{background:#c84820;color:#fff}.t32{background:#c83018;color:#fff}.t64{background:#b81818;color:#fff}.t128{background:#d4a818;color:#fff}.t256{background:#d49810;color:#fff}.t512{background:#d48600;color:#fff}.t1024{background:#3e8ed4;color:#fff}
+.t2048{background:linear-gradient(135deg,#28c87a,#38d48a);color:#fff;animation:g2048 2s ease-in-out infinite;}
+@keyframes g2048{0%,100%{box-shadow:0 0 20px rgba(56,212,138,.35)}50%{box-shadow:0 0 48px rgba(56,212,138,.75)}}
+.t4096{background:linear-gradient(135deg,#8830d0,#b060e0);color:#fff}.t8192{background:linear-gradient(135deg,#1a6aff,#5a9fff);color:#fff}.t16384{background:linear-gradient(135deg,#ff3d6a,#ff7a5a);color:#fff}.t32768{background:linear-gradient(135deg,#00c8c8,#00e8a0);color:#fff}
+.t65536{background:linear-gradient(135deg,#ff8c00,#ffd700);color:#fff;animation:superGlow 1.5s ease-in-out infinite;}
+@keyframes superGlow{0%,100%{box-shadow:0 0 20px rgba(255,200,0,.4)}50%{box-shadow:0 0 50px rgba(255,200,0,.85)}}
+.t131072{background:linear-gradient(135deg,#f5a623,#ffd700,#fff);color:#000;animation:ultimateGlow 1s ease-in-out infinite;}
+@keyframes ultimateGlow{0%,100%{box-shadow:0 0 30px rgba(255,215,0,.6)}50%{box-shadow:0 0 60px rgba(255,215,0,1)}}
+.thigh{background:#0e0e14;color:var(--accent);border:2px solid var(--accent);}
+.float-score{position:absolute;font-family:'Black Han Sans',sans-serif;font-size:.9rem;color:var(--accent);pointer-events:none;z-index:30;animation:fUp .9s ease-out forwards;text-shadow:0 2px 8px rgba(0,0,0,.5);}
+.float-score.penalty{color:var(--red);}
+@keyframes fUp{0%{opacity:1;transform:translateY(0) scale(1)}28%{opacity:1;transform:translateY(-14px) scale(1.22)}100%{opacity:0;transform:translateY(-52px) scale(.8)}}
+.overlay{display:none;position:absolute;inset:0;background:rgba(9,9,13,.88);border-radius:18px;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;backdrop-filter:blur(7px);}
+.overlay.show{display:flex;animation:fIn .3s ease both;}
+@keyframes fIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.overlay-title{font-family:'Black Han Sans',sans-serif;font-size:2rem;background:linear-gradient(130deg,#f5a623,#e8d460);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.overlay-score{font-size:.84rem;color:var(--subtext);}
+.hint-panel{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(9,9,13,.75);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .25s ease;}
+.hint-panel.show{opacity:1;pointer-events:all;}
+.hint-card{background:var(--surface2);border:1px solid rgba(168,85,247,.28);border-radius:20px;padding:26px 28px;max-width:410px;width:90%;box-shadow:0 24px 70px rgba(0,0,0,.7);transform:translateY(20px) scale(.97);transition:transform .3s var(--ease-bounce);}
+.hint-panel.show .hint-card{transform:translateY(0) scale(1);}
+.hint-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.hint-card-title{font-family:'Black Han Sans',sans-serif;font-size:1.1rem;color:var(--purple);display:flex;align-items:center;gap:8px;}
+.ai-badge{font-size:.58rem;font-weight:700;background:linear-gradient(130deg,#a855f7,#7c3aed);color:#fff;padding:2px 8px;border-radius:20px;letter-spacing:.1em;}
+.hint-close{background:rgba(255,255,255,.06);border:none;color:var(--subtext);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .18s;}
+.hint-close:hover{background:rgba(255,255,255,.12);color:var(--text);}
+.hint-thinking{display:flex;align-items:center;gap:10px;color:var(--subtext);font-size:.82rem;padding:6px 0;}
+.thinking-dots{display:flex;gap:5px;}
+.thinking-dots span{width:7px;height:7px;border-radius:50%;background:var(--purple);animation:tDot .9s ease-in-out infinite;}
+.thinking-dots span:nth-child(2){animation-delay:.18s}.thinking-dots span:nth-child(3){animation-delay:.36s}
+@keyframes tDot{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1.1);opacity:1}}
+.hint-body{display:none;}.hint-body.visible{display:block;}
+.hint-direction{display:flex;align-items:center;gap:12px;background:var(--purple-dim);border:1px solid rgba(168,85,247,.22);border-radius:13px;padding:13px 16px;margin-bottom:14px;}
+.hint-arrow{font-size:2.1rem;filter:drop-shadow(0 0 10px rgba(168,85,247,.5));}
+.hint-dir-label{font-family:'Black Han Sans',sans-serif;font-size:1.15rem;color:var(--purple);margin-bottom:2px;}
+.hint-dir-sub{font-size:.72rem;color:var(--subtext);}
+.hint-merges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px;}
+.merge-chip{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.2);border-radius:7px;padding:3px 9px;font-family:'Black Han Sans',sans-serif;font-size:.75rem;color:var(--accent);}
+.hint-reason{font-size:.8rem;color:#aaa;line-height:1.75;border-left:2px solid rgba(168,85,247,.3);padding-left:13px;margin-bottom:14px;white-space:pre-wrap;}
+.hint-penalty-info{font-size:.72rem;color:var(--red);text-align:center;margin-bottom:10px;opacity:.8;}
+.hint-apply-btn{width:100%;padding:10px;background:linear-gradient(130deg,rgba(168,85,247,.7),rgba(124,58,237,.7));border:none;border-radius:11px;cursor:pointer;font-family:'Black Han Sans',sans-serif;font-size:.9rem;color:#fff;transition:opacity .18s,transform .1s;}
+.hint-apply-btn:hover{opacity:.88;transform:translateY(-1px);}
+.hint-error{text-align:center;padding:10px 0;color:var(--red);font-size:.8rem;line-height:1.65;}
+.hint-counter{font-size:.62rem;color:var(--subtext);text-align:center;margin-top:7px;}
+.info-strip{margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;}
+.info-chip{font-size:.63rem;color:var(--subtext);background:var(--surface);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:3px 9px;}
+.info-chip.gold{color:var(--accent);border-color:rgba(245,166,35,.15);}
+.info-chip.red{color:var(--red);border-color:rgba(239,68,68,.15);}
+@media(max-width:560px){:root{--cell:64px;--gap:7px;--radius:9px;}.tile{font-size:1.1rem;}}
+@media(max-height:750px){:root{--cell:72px;}h1{font-size:1.8rem;}.scorebar{margin-bottom:5px;}.controls{margin-bottom:5px;}.status-bar{margin-bottom:5px;}.combo-banner{height:28px;margin-bottom:4px;}}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div id="start-screen">
+  <div class="start-particles" id="particles"></div>
+  <div class="start-inner">
+    <div class="start-logo-wrap">
+      <div class="start-logo-ai">AI</div>
+      <div class="start-logo">Cubic</div>
+    </div>
+    <div class="start-maxinfo">🏆 목표: 131,072 달성</div>
+    <div class="start-best-wrap">
+      <div class="start-best-box"><div class="start-best-label">최고 점수</div><div class="start-best-val" id="start-best-score">0</div></div>
+      <div class="start-best-box"><div class="start-best-label">최고 타일</div><div class="start-best-val blue" id="start-best-tile">-</div></div>
+    </div>
+    <div class="players-panel">
+      <div class="players-live-row">
+        <div class="live-dot"></div>
+        <div class="players-count-label"><span id="player-count">1</span> 명이 지금 플레이 중</div>
+      </div>
+      <div class="players-avatars" id="players-avatars"></div>
+      <div class="players-scroll" id="players-scroll"><div class="players-empty">불러오는 중…</div></div>
+    </div>
+    <button class="start-btn" onclick="startGame()">게임 시작</button>
+    <div class="start-sub">← → ↑ ↓ · 터치 스와이프 · 🎙 음성</div>
+  </div>
+</div>
+
+<!-- CELEBRATE -->
+<div id="celebrate-screen">
+  <div class="celeb-particles" id="celeb-particles"></div>
+  <div class="celeb-inner">
+    <div class="celeb-emoji">🏆</div>
+    <div class="celeb-title">당신의 승리!</div>
+    <div class="celeb-num">131,072</div>
+    <div class="celeb-sub">전설적인 숫자를 달성했습니다!<br>이제 <strong style="color:var(--purple)">5×5 특별 보드</strong>에 도전할 수 있습니다.</div>
+    <div class="celeb-next-hint">🟣 5×5 보드는 저장되어 다음에도 이어집니다</div>
+    <button class="celeb-btn" onclick="upgradeTo5x5()">🟣 5×5 보드로 계속하기</button>
+    <div class="celeb-score" id="celeb-score-text"></div>
+  </div>
+</div>
+
+<!-- MENU OVERLAY -->
+<div id="menu-overlay">
+  <div id="menu-backdrop" onclick="closeMenu()"></div>
+  <div id="menu-drawer">
+    <div class="menu-handle"></div>
+    <div class="menu-title"><span class="menu-title-icon">☰</span> 메뉴</div>
+
+    <div class="menu-section">
+      <div class="menu-section-label">네비게이션</div>
+      <div class="menu-btn-row">
+        <button class="menu-action-btn blue" onclick="goHome()">
+          <div class="mab-icon">🏠</div>
+          <div class="mab-label">홈으로</div>
+          <div class="mab-sub">인트로 화면으로 이동</div>
+        </button>
+        <button class="menu-action-btn" onclick="closeMenu();newGame()">
+          <div class="mab-icon">🔄</div>
+          <div class="mab-label">새 게임</div>
+          <div class="mab-sub">현재 판 초기화</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-label">🌍 나라별 랭킹</div>
+      <div class="country-select-row">
+        <label>🌐 내 국가</label>
+        <select class="country-select" id="my-country-select" onchange="onCountryChange(this.value)">
+          <option value="">-- 선택하세요 --</option>
+          <option value="KR">🇰🇷 대한민국</option>
+          <option value="US">🇺🇸 미국</option>
+          <option value="JP">🇯🇵 일본</option>
+          <option value="CN">🇨🇳 중국</option>
+          <option value="GB">🇬🇧 영국</option>
+          <option value="DE">🇩🇪 독일</option>
+          <option value="FR">🇫🇷 프랑스</option>
+          <option value="CA">🇨🇦 캐나다</option>
+          <option value="AU">🇦🇺 호주</option>
+          <option value="BR">🇧🇷 브라질</option>
+          <option value="IN">🇮🇳 인도</option>
+          <option value="RU">🇷🇺 러시아</option>
+          <option value="MX">🇲🇽 멕시코</option>
+          <option value="IT">🇮🇹 이탈리아</option>
+          <option value="ES">🇪🇸 스페인</option>
+          <option value="NL">🇳🇱 네덜란드</option>
+          <option value="SE">🇸🇪 스웨덴</option>
+          <option value="NO">🇳🇴 노르웨이</option>
+          <option value="SG">🇸🇬 싱가포르</option>
+          <option value="TH">🇹🇭 태국</option>
+          <option value="VN">🇻🇳 베트남</option>
+          <option value="PH">🇵🇭 필리핀</option>
+          <option value="ID">🇮🇩 인도네시아</option>
+          <option value="MY">🇲🇾 말레이시아</option>
+          <option value="TW">🇹🇼 대만</option>
+          <option value="HK">🇭🇰 홍콩</option>
+          <option value="SA">🇸🇦 사우디아라비아</option>
+          <option value="TR">🇹🇷 터키</option>
+          <option value="PL">🇵🇱 폴란드</option>
+          <option value="AR">🇦🇷 아르헨티나</option>
+          <option value="ZA">🇿🇦 남아프리카</option>
+          <option value="EG">🇪🇬 이집트</option>
+          <option value="NG">🇳🇬 나이지리아</option>
+          <option value="OTHER">🌐 기타</option>
+        </select>
+      </div>
+      <div class="ranking-tabs">
+        <button class="ranking-tab active" onclick="switchRankTab('world',this)">🌍 전체</button>
+        <button class="ranking-tab" onclick="switchRankTab('country',this)">🏳 내 나라</button>
+      </div>
+      <div id="ranking-list-wrap">
+        <div class="ranking-loading"><span>불러오는 중…</span></div>
+      </div>
+      <button class="ranking-refresh-btn" onclick="loadRanking()">🔄 새로고침</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="wrap">
+  <div class="top-bar">
+    <div style="width:38px"></div>
+    <h1>AI Cubic</h1>
+    <button class="menu-open-btn" onclick="openMenu()" aria-label="메뉴">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mode-indicator" id="mode-indicator">🟣 5×5 특별 보드</div>
+  <div id="ingame-live" style="display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:.65rem;color:var(--green);">
+    <div class="live-dot" style="width:6px;height:6px;"></div>
+    <span id="ingame-player-count">1</span> 명 플레이 중
+  </div>
+  <div class="scorebar">
+    <div class="score-box"><div class="score-label">점수</div><div class="score-value" id="score">0</div></div>
+    <div class="score-box"><div class="score-label">최고</div><div class="score-value" id="best">0</div></div>
+    <div class="score-box"><div class="score-label">최고 타일</div><div class="score-value blue" id="max-tile">-</div></div>
+    <div class="score-box"><div class="score-label">이동</div><div class="score-value" id="moves">0</div></div>
+  </div>
+  <div class="combo-banner">
+    <div class="combo-badge" id="combo-badge">
+      <span class="combo-text" id="combo-text">🔥 COMBO ×2</span>
+      <span class="combo-mult" id="combo-mult">점수 2배!</span>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn" onclick="newGame()">🔄 새 게임</button>
+    <button class="btn" onclick="undoMove()">↩ 되돌리기</button>
+    <button class="btn btn-voice" id="btn-voice" onclick="toggleVoice()">🎙 음성 명령</button>
+    <button class="btn btn-hint" id="btn-hint" onclick="requestHint()">✨ AI 힌트</button>
+  </div>
+  <div class="hint-cooldown-wrap" id="hint-cooldown-wrap"><div class="hint-cooldown-bar" id="hint-cooldown-bar"></div></div>
+  <div class="status-bar" id="status-bar">
+    <span id="status-text">준비 완료 — 화살표 키 또는 스와이프로 이동하세요</span>
+    <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+  </div>
+  <div class="grid-wrapper">
+    <div class="grid-bg" id="grid-bg"></div>
+    <div class="tile-layer" id="tile-layer"></div>
+    <div class="overlay" id="overlay">
+      <div class="overlay-title" id="overlay-title">게임 오버</div>
+      <div class="overlay-score" id="overlay-score"></div>
+      <button class="btn" onclick="newGame()">다시 시작</button>
+    </div>
+  </div>
+  <div class="info-strip">
+    <span class="info-chip">← → ↑ ↓</span>
+    <span class="info-chip">터치 스와이프</span>
+    <span class="info-chip gold">🏆 목표: 131,072</span>
+    <span class="info-chip red">⚠ 힌트 감점 · 30초 쿨</span>
+  </div>
+</div>
+
+<!-- HINT PANEL -->
+<div class="hint-panel" id="hint-panel" onclick="closeHintOnBg(event)">
+  <div class="hint-card">
+    <div class="hint-card-header">
+      <div class="hint-card-title">✨ AI 전략 힌트 <span class="ai-badge">Claude AI</span></div>
+      <button class="hint-close" onclick="closeHint()">✕</button>
+    </div>
+    <div class="hint-thinking" id="hint-thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span>Claude가 보드를 분석 중…</span></div>
+    <div class="hint-body" id="hint-body">
+      <div class="hint-direction">
+        <div class="hint-arrow" id="hint-arrow">▶</div>
+        <div><div class="hint-dir-label" id="hint-dir-label">오른쪽</div><div class="hint-dir-sub" id="hint-dir-sub">추천 이동 방향</div></div>
+      </div>
+      <div class="hint-merges" id="hint-merges"></div>
+      <div class="hint-reason" id="hint-reason"></div>
+      <div class="hint-penalty-info" id="hint-penalty-info"></div>
+      <button class="hint-apply-btn" id="hint-apply-btn" onclick="applyHint()">이 방향으로 이동하기 →</button>
+    </div>
+    <div class="hint-error" id="hint-error" style="display:none"><div class="err-icon" style="font-size:1.5rem;margin-bottom:6px">⚠️</div><div id="hint-error-text"></div></div>
+    <div class="hint-counter" id="hint-counter"></div>
+  </div>
+</div>
+
+<script>
+/* ══════ PARTICLES ══════ */
+(function(){
+  const c=document.getElementById('particles'),cols=['#f5a623','#5aacf5','#a855f7','#38d48a','#e8d460'];
+  for(let i=0;i<22;i++){const p=document.createElement('div');p.className='particle';const sz=Math.random()*6+3;p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;background:${cols[~~(Math.random()*cols.length)]};animation-duration:${5+Math.random()*8}s;animation-delay:${Math.random()*6}s;`;c.appendChild(p);}
+})();
+
+function startGame(){const s=document.getElementById('start-screen');s.classList.add('hide');setTimeout(()=>s.style.display='none',500);try{getAudioCtx().resume();}catch(e){}}
+function spawnCelebParticles(){const c=document.getElementById('celeb-particles');c.innerHTML='';const cols=['#f5a623','#ffd700','#a855f7','#38d48a','#5aacf5','#ff3d6a','#fff'];for(let i=0;i<60;i++){const p=document.createElement('div');p.className='c-particle';const sz=Math.random()*10+4;p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:-20px;background:${cols[~~(Math.random()*cols.length)]};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.5}s;`;c.appendChild(p);}}
+
+/* ══════ MENU ══════ */
+function openMenu(){document.getElementById('menu-overlay').classList.add('open');loadRanking();}
+function closeMenu(){document.getElementById('menu-overlay').classList.remove('open');}
+function goHome(){
+  closeMenu();
+  // Show start screen again
+  const s=document.getElementById('start-screen');
+  s.style.display='flex';s.style.animation='';
+  s.classList.remove('hide');
+  // refresh player data
+  heartbeat();
+}
+/* ══════ COUNTRY RANKING ══════ */
+const COUNTRY_MAP={
+  KR:{flag:'🇰🇷',name:'대한민국'},US:{flag:'🇺🇸',name:'미국'},JP:{flag:'🇯🇵',name:'일본'},
+  CN:{flag:'🇨🇳',name:'중국'},GB:{flag:'🇬🇧',name:'영국'},DE:{flag:'🇩🇪',name:'독일'},
+  FR:{flag:'🇫🇷',name:'프랑스'},CA:{flag:'🇨🇦',name:'캐나다'},AU:{flag:'🇦🇺',name:'호주'},
+  BR:{flag:'🇧🇷',name:'브라질'},IN:{flag:'🇮🇳',name:'인도'},RU:{flag:'🇷🇺',name:'러시아'},
+  MX:{flag:'🇲🇽',name:'멕시코'},IT:{flag:'🇮🇹',name:'이탈리아'},ES:{flag:'🇪🇸',name:'스페인'},
+  NL:{flag:'🇳🇱',name:'네덜란드'},SE:{flag:'🇸🇪',name:'스웨덴'},NO:{flag:'🇳🇴',name:'노르웨이'},
+  SG:{flag:'🇸🇬',name:'싱가포르'},TH:{flag:'🇹🇭',name:'태국'},VN:{flag:'🇻🇳',name:'베트남'},
+  PH:{flag:'🇵🇭',name:'필리핀'},ID:{flag:'🇮🇩',name:'인도네시아'},MY:{flag:'🇲🇾',name:'말레이시아'},
+  TW:{flag:'🇹🇼',name:'대만'},HK:{flag:'🇭🇰',name:'홍콩'},SA:{flag:'🇸🇦',name:'사우디아라비아'},
+  TR:{flag:'🇹🇷',name:'터키'},PL:{flag:'🇵🇱',name:'폴란드'},AR:{flag:'🇦🇷',name:'아르헨티나'},
+  ZA:{flag:'🇿🇦',name:'남아프리카'},EG:{flag:'🇪🇬',name:'이집트'},NG:{flag:'🇳🇬',name:'나이지리아'},
+  OTHER:{flag:'🌐',name:'기타'}
+};
+const RANK_LS_KEY='aicubic_mycountry';
+let myCountry=null;
+let currentRankTab='world';
+
+function loadMyCountry(){
+  const saved=localStorage.getItem(RANK_LS_KEY);
+  if(saved){myCountry=saved;try{document.getElementById('my-country-select').value=saved;}catch(e){}}
+}
+function onCountryChange(val){
+  myCountry=val||null;
+  if(myCountry)localStorage.setItem(RANK_LS_KEY,myCountry);
+  else localStorage.removeItem(RANK_LS_KEY);
+  // 플레이어 정보 업데이트
+  regPlayer();
+  loadRanking();
+}
+function switchRankTab(tab, btn){
+  currentRankTab=tab;
+  document.querySelectorAll('.ranking-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadRanking();
+}
+async function loadRanking(){
+  const wrap=document.getElementById('ranking-list-wrap');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="ranking-loading"><span>불러오는 중…</span></div>';
+
+  // Firebase에서 플레이어 목록 가져오기
+  let players=[];
+  try{
+    if(fbConfigOk && fbDb){
+      const {ref:fbRef, get} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      const snap = await get(fbRef(fbDb,'aicubic_players'));
+      const data = snap.val();
+      if(data){
+        const now=Date.now();
+        players=Object.values(data).filter(p=>p&&now-p.ts<3600000&&(p.score||0)>0);
+      }
+    }
+  }catch(e){}
+
+  // 탭에 따라 필터
+  let filtered=players;
+  if(currentRankTab==='country'){
+    if(!myCountry){wrap.innerHTML='<div class="ranking-empty">먼저 국가를 선택해 주세요</div>';return;}
+    filtered=players.filter(p=>p.country===myCountry);
+  }
+
+  // 점수 내림차순 정렬, 상위 50명
+  filtered.sort((a,b)=>(b.score||0)-(a.score||0));
+  filtered=filtered.slice(0,50);
+
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="ranking-empty">${currentRankTab==='country'?'이 국가의 플레이어가 없습니다':'아직 기록된 플레이어가 없습니다'}</div>`;
+    return;
+  }
+
+  const html=filtered.map((p,i)=>{
+    const isMe=p.id===myId;
+    const numClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const numText=i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+    const cm=p.country?COUNTRY_MAP[p.country]:null;
+    const flag=cm?cm.flag:'🌐';
+    const cname=cm?cm.name:'';
+    const tile=p.maxTile&&p.maxTile>0?`<div class="rank-tile">최고 ${p.maxTile.toLocaleString()}</div>`:'';
+    return `<div class="ranking-row${isMe?' me':''}">
+      <div class="rank-num ${numClass}">${numText}</div>
+      <div class="rank-flag">${flag}</div>
+      <div class="rank-info">
+        <div class="rank-name">${esc(p.name||'?')}${isMe?'<span class="rank-you">나</span>':''}</div>
+        ${cname?`<div class="rank-country">${cname}</div>`:''}
+      </div>
+      <div>
+        <div class="rank-score">${(p.score||0).toLocaleString()}</div>
+        ${tile}
+      </div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="ranking-list">${html}</div>`;
+}
+
+/* ══════ AUDIO ══════ */
+let audioCtx=null;
+function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function ensureAudio(){const c=getAudioCtx();if(c.state==='suspended')c.resume();return c;}
+function playTone(freq,type,vol,dur,delay=0){try{const ctx=ensureAudio(),t=ctx.currentTime+delay;const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.012);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur+0.01);}catch(e){}}
+function playSlideSound(){playTone(260,'sine',0.05,0.07);}
+function playMergeSound(v,c){try{const ctx=ensureAudio();const freq=Math.min(Math.max(220*Math.pow(2,(Math.log2(v)*2+c*1.5)/12),180),1800);const t=ctx.currentTime;const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(freq*1.01,t+0.08);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.22,t+0.012);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.32);const o2=ctx.createOscillator(),g2=ctx.createGain();o2.type='triangle';o2.frequency.value=freq*2;g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(0.08,t+0.01);g2.gain.exponentialRampToValueAtTime(0.001,t+0.2);o2.connect(g2);g2.connect(ctx.destination);o2.start(t);o2.stop(t+0.22);}catch(e){}}
+function playComboSound(n){[0,4,7,12].slice(0,Math.min(n,4)).forEach((s,i)=>playTone(440*Math.pow(2,s/12),'sine',0.14,0.22,i*0.06));}
+function playNewTileSound(){playTone(320,'sine',0.06,0.11);}
+function playGameOverSound(){[440,392,349,294].forEach((f,i)=>playTone(f,'sawtooth',0.12,0.3,i*0.18));}
+function playVictorySound(){[523,659,784,1047,784,659,523,659,784,1047].forEach((f,i)=>playTone(f,'sine',0.18,0.25,i*0.12));}
+function playPenaltySound(){playTone(180,'sawtooth',0.15,0.18);setTimeout(()=>playTone(150,'sawtooth',0.1,0.25),100);}
+
+/* ══════ HINT COOLDOWN ══════ */
+const HINT_CD=30000;
+let hintCooldownEnd=0,hintCooldownAnim=null;
+function calcHintPenalty(){
+  const mx=Math.max(...board.flat(),0);
+  if(mx>=16384){const t=[16384,32768,65536,131072,262144];let m=1;for(let i=0;i<t.length;i++)if(mx>=t[i])m=Math.pow(1.5,i);return Math.round(2000*m);}
+  if(mx>=8192)return 2000;if(mx>=1024)return 1000;return 500;
+}
+function startHintCooldown(){
+  hintCooldownEnd=Date.now()+HINT_CD;
+  const wrap=document.getElementById('hint-cooldown-wrap'),bar=document.getElementById('hint-cooldown-bar'),btn=document.getElementById('btn-hint');
+  wrap.classList.add('show');btn.classList.add('disabled');
+  if(hintCooldownAnim)cancelAnimationFrame(hintCooldownAnim);
+  function tick(){const rem=hintCooldownEnd-Date.now();if(rem<=0){bar.style.width='0%';wrap.classList.remove('show');updateHintBtn();setStatus('AI 힌트 준비 완료!','success');setTimeout(()=>setStatus('준비 완료',''),2000);return;}bar.style.width=(rem/HINT_CD*100)+'%';btn.textContent=`✨ AI 힌트 (${Math.ceil(rem/1000)}초)`;hintCooldownAnim=requestAnimationFrame(tick);}tick();
+}
+
+/* ══════ STATE ══════ */
+let SIZE=4;
+let board,score,bestScore,moves,maxTile;
+let prevBoard,prevScore,prevMoves,prevCombo;
+// ── 버그픽스: animating 대신 moveInProgress + 쿨타임으로 이중 잠금 ──
+let moveInProgress=false;
+const MOVE_COOLDOWN=180; // ms — 빠른 연속 입력 방지
+let lastMoveTime=0;
+let comboCount=0,comboTimer=null;
+let hintCount=0,currentHintDir=null;
+let tileMap={},nextId=1;
+let is5x5=false,celebShown=false;
+
+function canMove(){return !moveInProgress&&(Date.now()-lastMoveTime>=MOVE_COOLDOWN);}
+
+function loadSaved(){try{const d=JSON.parse(localStorage.getItem('aicubic_5x5')||'null');if(d&&d.board&&d.board.length===5)return d;}catch(e){}return null;}
+function saveState(){if(!is5x5)return;try{localStorage.setItem('aicubic_5x5',JSON.stringify({board,score,moves,maxTile}));}catch(e){}}
+
+function gapPx(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gap'));}
+function cellPx(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell'));}
+function step(){return cellPx()+gapPx();}
+function ANIM_MS(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--anim'));}
+function tTx(r,c){const s=step();return`translate(${c*s}px,${r*s}px)`;}
+const KNOWN_VALS=[2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072];
+function tileClass(v){return KNOWN_VALS.includes(v)?'t'+v:'thigh';}
+function tileFontSize(v){
+  if(v>=131072)return is5x5?'.5rem':'.62rem';if(v>=65536)return is5x5?'.58rem':'.7rem';
+  if(v>=8192)return is5x5?'.68rem':'.8rem';if(v>=1024)return is5x5?'.78rem':'.92rem';
+  if(v>=128)return is5x5?'.88rem':'1.1rem';return is5x5?'1.05rem':'1.5rem';
+}
+
+/* ══════ COMBO ══════ */
+function getComboMult(n){if(n<2)return 1;if(n<4)return 1.5;if(n<6)return 2;if(n<9)return 3;return 4;}
+function triggerCombo(mergeCount){
+  clearTimeout(comboTimer);
+  if(!mergeCount){comboCount=0;hideComboBadge();return 1;}
+  comboCount+=mergeCount;
+  const m=getComboMult(comboCount);
+  comboTimer=setTimeout(()=>{comboCount=0;hideComboBadge();},3500);
+  if(comboCount>=2){showComboBadge(comboCount,m);playComboSound(Math.min(comboCount,4));}
+  return m;
+}
+function showComboBadge(n,m){
+  const b=document.getElementById('combo-badge');
+  document.getElementById('combo-text').textContent=`🔥 COMBO ×${n}`;
+  document.getElementById('combo-mult').textContent=m>=4?'점수 4배!':m>=3?'점수 3배!':m>=2?'점수 2배!':'점수 1.5x';
+  b.classList.remove('show');void b.offsetWidth;b.classList.add('show');
+}
+function hideComboBadge(){document.getElementById('combo-badge').classList.remove('show');}
+
+/* ══════ GRID ══════ */
+function initGridBg(){
+  const gb=document.getElementById('grid-bg'),cs=cellPx(),gs=gapPx();
+  gb.innerHTML='';
+  gb.style.gridTemplateColumns=`repeat(${SIZE},${cs}px)`;
+  gb.style.gridTemplateRows=`repeat(${SIZE},${cs}px)`;
+  gb.style.gap=gs+'px';
+  const tl=document.getElementById('tile-layer');tl.style.top=gs+'px';tl.style.left=gs+'px';
+  for(let i=0;i<SIZE*SIZE;i++){const d=document.createElement('div');d.className='cell-bg';gb.appendChild(d);}
+}
+function setGridSize(n){
+  SIZE=n;const root=document.documentElement;
+  if(n===5){const max=Math.min(Math.min(window.innerWidth,600)-20,window.innerHeight-320);const cp=Math.floor((max-6*8)/5);root.style.setProperty('--cell',Math.max(56,Math.min(80,cp))+'px');root.style.setProperty('--gap','8px');}
+  else{const vw=window.innerWidth;root.style.setProperty('--cell',vw<=520?'64px':'88px');root.style.setProperty('--gap',vw<=520?'7px':'12px');}
+  initGridBg();
+}
+
+/* ══════ TILES ══════ */
+function mkTileEl(r,c,v,animate){
+  const el=document.createElement('div'),id=nextId++,tx=tTx(r,c),cs=cellPx();
+  el.className='tile '+tileClass(v);
+  el.style.cssText=`--base-tx:${tx};transform:${tx};width:${cs}px;height:${cs}px;font-size:${tileFontSize(v)};`;
+  el.textContent=v;el.dataset.id=id;
+  if(animate){el.classList.add('is-new');el.addEventListener('animationend',()=>el.classList.remove('is-new'),{once:true});}
+  document.getElementById('tile-layer').appendChild(el);
+  tileMap[id]={v,r,c,el};return id;
+}
+function clearTiles(){Object.values(tileMap).forEach(t=>t.el.remove());tileMap={};nextId=1;}
+function clearHints(){document.querySelectorAll('.tile.hint-tile').forEach(e=>e.classList.remove('hint-tile'));}
+
+/* ══════ NEW GAME ══════ */
+function newGame(){
+  celebShown=false;is5x5=false;moveInProgress=false;lastMoveTime=0;
+  document.getElementById('mode-indicator').classList.remove('show');
+  setGridSize(4);
+  board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  score=0;moves=0;maxTile=0;prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;
+  comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+  bestScore=parseInt(localStorage.getItem('2048best')||'0');
+  document.getElementById('overlay').classList.remove('show');
+  clearTiles();clearHints();currentHintDir=null;
+  updateScoreUI();spawnRandom(true);spawnRandom(true);
+  setStatus('준비 완료 — 화살표 키 또는 스와이프로 이동하세요','');
+  updateHintBtn();
+}
+function upgradeTo5x5(){
+  document.getElementById('celebrate-screen').classList.remove('show');
+  document.getElementById('celebrate-screen').style.display='none';
+  is5x5=true;moveInProgress=false;lastMoveTime=0;
+  document.getElementById('mode-indicator').classList.add('show');setGridSize(5);
+  const saved=loadSaved();
+  if(saved&&saved.board&&saved.board.length===5){
+    board=saved.board;score=saved.score||score;moves=saved.moves||moves;maxTile=saved.maxTile||maxTile;
+    clearTiles();for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c])mkTileEl(r,c,board[r][c],false);
+  }else{
+    board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+    prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+    clearTiles();clearHints();currentHintDir=null;
+    spawnRandom(true);spawnRandom(true);spawnRandom(true);
+  }
+  bestScore=parseInt(localStorage.getItem('2048best')||'0');
+  document.getElementById('overlay').classList.remove('show');
+  updateScoreUI();updateHintBtn();setStatus('🟣 5×5 특별 보드 시작!','success');saveState();
+}
+
+/* ══════ SPAWN ══════ */
+function spawnRandom(animate){
+  const empty=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(!board[r][c])empty.push([r,c]);
+  if(!empty.length)return;
+  const[r,c]=empty[~~(Math.random()*empty.length)];const v=Math.random()<0.85?2:4;
+  board[r][c]=v;if(animate)playNewTileSound();mkTileEl(r,c,v,animate);
+}
+
+/* ══════════════════════════════════════
+   MOVE ENGINE (버그픽스 버전)
+   ─────────────────────────────────────
+   핵심 변경:
+   1. computeMove를 board 값만으로 완전히 계산
+      (tileMap을 건드리지 않음)
+   2. plan = [{fromR,fromC,toR,toC,loser,mergeVal}]
+   3. execute에서 posMap을 move 시작 시점에 한 번만 스냅샷
+   4. 각 타일의 최종 위치로만 한 번에 이동 (통과 없음)
+   5. loser는 slide 후 즉시 제거 (z-index 충돌 방지)
+══════════════════════════════════════ */
+function computeMove(dir){
+  const isVert=dir==='up'||dir==='down';
+  const rev=dir==='right'||dir==='down';
+  let changed=false,mergeCount=0,mergeValues=[];
+  const newBoard=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  // plan: array of move descriptors referencing original [r,c] positions
+  const plan=[];
+
+  for(let li=0;li<SIZE;li++){
+    // Extract non-zero cells in direction order
+    const nonzero=[];
+    for(let i=0;i<SIZE;i++){
+      const r=isVert?(rev?SIZE-1-i:i):li;
+      const c=isVert?li:(rev?SIZE-1-i:i);
+      if(board[r][c])nonzero.push({v:board[r][c],r,c});
+    }
+    if(!nonzero.length)continue;
+
+    // Chain-merge with pair passes
+    let cur=nonzero.map(x=>({v:x.v,srcs:[{r:x.r,c:x.c}]}));
+    while(true){
+      let merged=false;const next=[];let i=0;
+      while(i<cur.length){
+        if(i+1<cur.length&&cur[i].v===cur[i+1].v){
+          next.push({v:cur[i].v*2,srcs:[...cur[i].srcs,...cur[i+1].srcs]});
+          i+=2;merged=true;
+        }else{next.push(cur[i]);i++;}
+      }
+      if(!merged)break;
+      cur=next;
+    }
+
+    // Place into newBoard & build plan
+    cur.forEach((slot,si)=>{
+      const dr=isVert?(rev?SIZE-1-si:si):li;
+      const dc=isVert?li:(rev?SIZE-1-si:si);
+      newBoard[dr][dc]=slot.v;
+      if(slot.srcs.length>1){
+        mergeCount++;mergeValues.push(slot.v);
+        // winner = last src, losers = rest
+        const winSrc=slot.srcs[slot.srcs.length-1];
+        slot.srcs.slice(0,-1).forEach(src=>{
+          plan.push({fromR:src.r,fromC:src.c,toR:dr,toC:dc,loser:true});
+          if(src.r!==dr||src.c!==dc)changed=true;
+        });
+        plan.push({fromR:winSrc.r,fromC:winSrc.c,toR:dr,toC:dc,mergeVal:slot.v});
+        if(winSrc.r!==dr||winSrc.c!==dc)changed=true;
+      }else{
+        const src=slot.srcs[0];
+        plan.push({fromR:src.r,fromC:src.c,toR:dr,toC:dc});
+        if(src.r!==dr||src.c!==dc)changed=true;
+      }
+    });
+  }
+  // Also detect change by merges even if positions are same
+  if(mergeCount>0)changed=true;
+  return{newBoard,plan,changed,mergeCount,mergeValues};
+}
+
+/* ══════ EXECUTE MOVE ══════ */
+function move(dir){
+  if(!canMove())return;
+  clearHints();
+
+  // Snapshot board BEFORE computeMove
+  const snap=board.map(r=>[...r]);
+  const{newBoard,plan,changed,mergeCount,mergeValues}=computeMove(dir);
+
+  if(!changed){
+    const gb=document.getElementById('grid-bg');gb.classList.remove('shake');void gb.offsetWidth;gb.classList.add('shake');
+    triggerCombo(0);checkEnd();return;
+  }
+
+  // Lock
+  moveInProgress=true;lastMoveTime=Date.now();
+  prevBoard=snap;prevScore=score;prevMoves=moves;prevCombo=comboCount;
+  moves++;
+
+  const mult=triggerCombo(mergeCount);
+  let raw=0;mergeValues.forEach(v=>raw+=v);
+  score+=Math.round(raw*mult);
+  if(score>bestScore){bestScore=score;localStorage.setItem('2048best',bestScore);}
+  updateScoreUI();updateHintBtn();
+
+  // Build posMap ONCE from current tileMap state (before any mutation)
+  const posMap={};
+  Object.entries(tileMap).forEach(([id,t])=>{posMap[t.r+','+t.c]=+id;});
+
+  const loserIds=new Set();
+  const winners=[];// {id, toR, toC, mergeVal}
+  let hasMoved=false;
+
+  // Phase 1: slide all tiles to their final destinations simultaneously
+  plan.forEach(p=>{
+    const id=posMap[p.fromR+','+p.fromC];
+    if(id==null||!tileMap[id])return;
+    const tile=tileMap[id];
+    if(p.toR!==tile.r||p.toC!==tile.c)hasMoved=true;
+    // Update logical position immediately to prevent double-use
+    tile.r=p.toR;tile.c=p.toC;
+    const tx=tTx(p.toR,p.toC);
+    tile.el.style.setProperty('--base-tx',tx);
+    tile.el.style.transform=tx;
+    if(p.loser)loserIds.add(id);
+    if(p.mergeVal!=null)winners.push({id,toR:p.toR,toC:p.toC,mergeVal:p.mergeVal});
+  });
+
+  if(hasMoved)playSlideSound();
+
+  const animDur=ANIM_MS();
+  let sndDelay=0;
+
+  setTimeout(()=>{
+    // Remove losers after slide completes
+    loserIds.forEach(id=>{
+      if(tileMap[id]){tileMap[id].el.remove();delete tileMap[id];}
+    });
+
+    // Upgrade winners & animate merge
+    winners.forEach(({id,toR,toC,mergeVal})=>{
+      const tile=tileMap[id];if(!tile)return;
+      tile.v=mergeVal;if(mergeVal>maxTile)maxTile=mergeVal;
+      const cs=cellPx(),tx=tTx(toR,toC);
+      tile.el.className='tile '+tileClass(mergeVal)+' is-merge';
+      tile.el.style.fontSize=tileFontSize(mergeVal);
+      tile.el.style.width=cs+'px';tile.el.style.height=cs+'px';
+      tile.el.textContent=mergeVal;
+      tile.el.style.setProperty('--base-tx',tx);tile.el.style.transform=tx;
+      tile.el.addEventListener('animationend',()=>tile.el.classList.remove('is-merge'),{once:true});
+      setTimeout(()=>playMergeSound(mergeVal,comboCount),sndDelay);sndDelay+=60;
+      const gained=Math.round(mergeVal*mult);
+      spawnFloat(toR,toC,mult>1?`+${gained} ×${mult}🔥`:`+${mergeVal}`,false);
+    });
+
+    // Commit new board
+    board=newBoard;
+
+    // Spawn new tile after short delay
+    setTimeout(()=>{
+      spawnRandom(true);
+      // Unlock after new tile appears
+      moveInProgress=false;
+      updateScoreUI();updateHintBtn();
+      if(is5x5)saveState();
+      checkEnd();
+    },80);
+
+  },animDur+20);
+}
+
+/* ══════ FLOAT ══════ */
+function spawnFloat(r,c,text,isPenalty){
+  const s=step(),el=document.createElement('div');
+  el.className='float-score'+(isPenalty?' penalty':'');
+  el.textContent=text;el.style.left=(c*s+10)+'px';el.style.top=(r*s-4)+'px';
+  document.getElementById('tile-layer').appendChild(el);
+  el.addEventListener('animationend',()=>el.remove());
+}
+
+/* ══════ UNDO ══════ */
+function undoMove(){
+  if(!prevBoard||moveInProgress)return;
+  board=prevBoard;score=prevScore;moves=prevMoves;comboCount=prevCombo;prevBoard=null;
+  clearTiles();clearHints();currentHintDir=null;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c])mkTileEl(r,c,board[r][c],false);
+  maxTile=Math.max(...board.flat(),0);
+  updateScoreUI();updateHintBtn();
+  document.getElementById('overlay').classList.remove('show');
+  if(comboCount<2)hideComboBadge();
+}
+
+/* ══════ END CHECK ══════ */
+function checkEnd(){
+  const cur=Math.max(...board.flat(),maxTile);
+  if(!is5x5&&!celebShown&&cur>=131072){
+    celebShown=true;localStorage.setItem('aicubic_achieved','1');
+    setTimeout(()=>{playVictorySound();spawnCelebParticles();document.getElementById('celeb-score-text').textContent=`최종 점수: ${score.toLocaleString()} | 이동: ${moves}회`;const cs=document.getElementById('celebrate-screen');cs.style.display='flex';cs.classList.add('show');},400);return;
+  }
+  if(!['left','right','up','down'].some(d=>computeMove(d).changed)){playGameOverSound();showOverlay('게임 오버');}
+}
+function showOverlay(t){document.getElementById('overlay-title').textContent=t;document.getElementById('overlay-score').textContent='최종 점수: '+score.toLocaleString();document.getElementById('overlay').classList.add('show');}
+
+/* ══════ SCORE UI ══════ */
+function updateScoreUI(){
+  const pop=(id,val)=>{const el=document.getElementById(id);el.textContent=val;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');el.addEventListener('animationend',()=>el.classList.remove('pop'),{once:true});};
+  pop('score',score.toLocaleString());pop('best',bestScore.toLocaleString());pop('moves',moves);
+  const mt=Math.max(...board.flat(),maxTile,0);document.getElementById('max-tile').textContent=mt>0?mt.toLocaleString():'-';
+}
+function updateHintBtn(){
+  if(Date.now()<hintCooldownEnd)return;
+  const btn=document.getElementById('btn-hint'),pen=calcHintPenalty();
+  if(score<pen){btn.classList.add('disabled');btn.textContent=`✨ AI 힌트 (${pen.toLocaleString()}점 필요)`;}
+  else{btn.classList.remove('disabled');btn.textContent='✨ AI 힌트';}
+}
+function setStatus(text,type){const el=document.getElementById('status-bar'),tx=document.getElementById('status-text');el.className='status-bar'+(type?' '+type:'');tx.textContent=text;}
+
+/* ══════ INPUT ══════ */
+const KMAP={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};
+document.addEventListener('keydown',e=>{
+  if(KMAP[e.key]){e.preventDefault();ensureAudio();move(KMAP[e.key]);}
+  if(e.key==='Escape')closeMenu();
+});
+let tx0=0,ty0=0;
+document.getElementById('grid-bg').addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;},{passive:true});
+document.getElementById('grid-bg').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;
+  ensureAudio();move(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+},{passive:true});
+
+/* ══════ VOICE ══════ */
+let recognition=null,voiceActive=false,voiceRestartTimer=null;
+const VCMDS=[
+  {keys:['왼쪽','왼','레프트','left'],action:()=>move('left'),label:'◀ 왼쪽'},
+  {keys:['오른쪽','오른','라이트','right'],action:()=>move('right'),label:'▶ 오른쪽'},
+  {keys:['위','위로','업','up'],action:()=>move('up'),label:'▲ 위'},
+  {keys:['아래','아래로','다운','down'],action:()=>move('down'),label:'▼ 아래'},
+  {keys:['새게임','새 게임','리셋','다시'],action:()=>newGame(),label:'🔄 새 게임'},
+  {keys:['되돌리기','취소','언도','undo'],action:()=>undoMove(),label:'↩ 되돌리기'},
+  {keys:['힌트','hint'],action:()=>requestHint(),label:'✨ AI 힌트'},
+];
+function matchV(raw){const t=raw.toLowerCase().trim();for(const cmd of VCMDS)for(const k of cmd.keys)if(t===k||t.includes(k))return cmd;return null;}
+function buildRecog(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;
+  const r=new SR();r.lang='ko-KR';r.continuous=false;r.interimResults=false;r.maxAlternatives=5;
+  r.onresult=e=>{for(let i=0;i<e.results.length;i++){const res=e.results[i];if(!res.isFinal)continue;let m=null;for(let a=0;a<res.length;a++){m=matchV(res[a].transcript);if(m)break;}if(m){m.action();setStatus('✓ '+m.label,'success');setTimeout(()=>{if(voiceActive)setStatus('듣고 있습니다…','active');},2000);return;}setStatus('"'+res[0].transcript.trim()+'" — 인식 안 됨','error');setTimeout(()=>{if(voiceActive)setStatus('듣고 있습니다…','active');},1800);}};
+  r.onerror=e=>{if(e.error==='no-speech'||e.error==='aborted')return;if(e.error==='not-allowed'){setStatus('마이크 권한 거부됨','error');stopVoice();}};
+  r.onend=()=>{if(!voiceActive)return;clearTimeout(voiceRestartTimer);voiceRestartTimer=setTimeout(()=>{if(!voiceActive)return;try{recognition.start();}catch(e2){}},250);};
+  return r;
+}
+function toggleVoice(){ensureAudio();if(!voiceActive)startVoice();else stopVoice();}
+function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setStatus('음성 인식 미지원','error');return;}recognition=buildRecog();voiceActive=true;document.getElementById('btn-voice').classList.add('listening');document.getElementById('btn-voice').textContent='🔴 음성 종료';setStatus('듣고 있습니다…','active');try{recognition.start();}catch(err){setStatus('마이크 시작 실패','error');voiceActive=false;}}
+function stopVoice(){voiceActive=false;clearTimeout(voiceRestartTimer);if(recognition){try{recognition.abort();}catch(e){}recognition=null;}document.getElementById('btn-voice').classList.remove('listening');document.getElementById('btn-voice').textContent='🎙 음성 명령';setStatus('음성 명령 종료','');}
+
+/* ══════ AI HINT ══════ */
+const DIR_META={left:{arrow:'◀',label:'왼쪽'},right:{arrow:'▶',label:'오른쪽'},up:{arrow:'▲',label:'위'},down:{arrow:'▼',label:'아래'}};
+function getMerges(dir){
+  const s=board.map(r=>[...r]);const merges=[];
+  const vd={left:{dr:0,dc:-1},right:{dr:0,dc:1},up:{dr:-1,dc:0},down:{dr:1,dc:0}}[dir];
+  let rows=[...Array(SIZE).keys()],cols=[...Array(SIZE).keys()];
+  if(dir==='right')cols=[...cols].reverse();if(dir==='down')rows=[...rows].reverse();
+  const mp=new Set();
+  const trav=dir==='up'||dir==='down'?cols.flatMap(c=>rows.map(r=>[r,c])):rows.flatMap(r=>cols.map(c=>[r,c]));
+  for(const[r,c]of trav){if(!s[r][c])continue;let nr=r,nc=c;while(true){const tr=nr+vd.dr,tc=nc+vd.dc;if(tr<0||tr>=SIZE||tc<0||tc>=SIZE||s[tr][tc]!==0)break;nr=tr;nc=tc;}const mr=nr+vd.dr,mc=nc+vd.dc;const key=mr+','+mc;if(mr>=0&&mr<SIZE&&mc>=0&&mc<SIZE&&s[mr][mc]===s[r][c]&&!mp.has(key)){merges.push(s[r][c]);mp.add(key);s[mr][mc]*=2;s[r][c]=0;}else if(nr!==r||nc!==c){s[nr][nc]=s[r][c];s[r][c]=0;}}
+  return merges;
+}
+function localHint(){
+  let best=null,bestS=-Infinity;
+  for(const dir of['left','right','up','down']){const{changed,mergeValues}=computeMove(dir);if(!changed)continue;const h=mergeValues.reduce((a,b)=>a+b,0)*10+mergeValues.length*50+board.flat().filter(v=>!v).length*5;if(h>bestS){bestS=h;best=dir;}}
+  if(!best)return null;
+  return{direction:best,reason:`${DIR_META[best].label} 방향이 현재 가장 효율적입니다. 큰 타일을 구석에 모으는 전략을 유지하세요.`,merges:getMerges(best),source:'local'};
+}
+async function requestHint(){
+  if(moveInProgress||Date.now()<hintCooldownEnd)return;
+  const pen=calcHintPenalty();
+  if(score<pen){setStatus(`⚠ 힌트에 ${pen.toLocaleString()}점 필요 (현재 ${score.toLocaleString()}점)`,'error');setTimeout(()=>setStatus('준비 완료',''),2800);return;}
+  score=Math.max(0,score-pen);updateScoreUI();updateHintBtn();playPenaltySound();
+  spawnFloat(Math.floor(SIZE/2),Math.floor(SIZE/2),`-${pen.toLocaleString()}`,true);
+  clearHints();currentHintDir=null;showHintPanel();setHintState('thinking');ensureAudio();startHintCooldown();
+  const dirInfo=['left','right','up','down'].map(d=>{const{changed}=computeMove(d);const m=changed?getMerges(d):[];return`${d}: ${changed?'가능 (합치기: '+(m.length?m.map(v=>v+'→'+v*2).join(', '):'없음')+')':'불가'}`;});
+  const boardStr=board.map(r=>r.map(v=>String(v||'.').padStart(5)).join(' ')).join('\n');
+  const maxT=Math.max(...board.flat());const emptyN=board.flat().filter(v=>!v).length;
+  const prompt=`당신은 2048 게임 전략 AI입니다. 현재 ${SIZE}×${SIZE} 보드를 분석하여 최선의 한 수를 추천하세요.\n\n보드:\n${boardStr}\n\n최고 타일: ${maxT} | 빈 칸: ${emptyN}개 | 점수: ${score} | 이동: ${moves}회\n\n각 방향:\n${dirInfo.join('\n')}\n\nJSON만 반환:\n{"direction":"left/right/up/down","reason":"전략적 이유 2-3문장 (한국어)","merges":[합쳐지는 값들],"tip":"한 줄 팁 (선택사항)"}`;
+  let hint=null;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:'2048 전략 전문가. JSON만 반환.',messages:[{role:'user',content:prompt}]})});
+    if(res.ok){const data=await res.json();const raw=data.content.map(b=>b.text||'').join('').trim().replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').trim();hint=JSON.parse(raw);if(!['left','right','up','down'].includes(hint.direction))throw 0;const{changed}=computeMove(hint.direction);if(!changed)throw 0;hint.source='claude';}else throw 0;
+  }catch(e){hint=localHint();}
+  if(!hint){document.getElementById('hint-error-text').textContent='이동 가능한 방향이 없습니다!';setHintState('error');return;}
+  hintCount++;currentHintDir=hint.direction;
+  const meta=DIR_META[hint.direction];
+  document.getElementById('hint-arrow').textContent=meta.arrow;
+  document.getElementById('hint-dir-label').textContent=meta.label;
+  document.getElementById('hint-dir-sub').textContent=hint.source==='claude'?'Claude AI 추천':'AI 휴리스틱 추천';
+  const mc=document.getElementById('hint-merges');mc.innerHTML='';
+  if(hint.merges&&hint.merges.length)hint.merges.forEach(v=>{const ch=document.createElement('div');ch.className='merge-chip';ch.textContent=`${v}+${v}→${v*2}`;mc.appendChild(ch);});
+  else mc.innerHTML='<span style="font-size:.72rem;color:var(--subtext)">합칠 타일 없음</span>';
+  document.getElementById('hint-reason').textContent=hint.reason+(hint.tip?'\n\n💡 '+hint.tip:'');
+  document.getElementById('hint-penalty-info').textContent=`⚠ 이 힌트로 ${pen.toLocaleString()}점이 차감되었습니다`;
+  document.getElementById('hint-apply-btn').textContent=`${meta.arrow} ${meta.label}으로 이동하기`;
+  document.getElementById('hint-counter').textContent=`힌트 사용 ${hintCount}회 | ${hint.source==='claude'?'🟣 Claude AI':'🔵 로컬 AI'} | 쿨타임 30초`;
+  setHintState('result');
+  const vd={left:{dr:0,dc:-1},right:{dr:0,dc:1},up:{dr:-1,dc:0},down:{dr:1,dc:0}}[hint.direction];
+  Object.values(tileMap).forEach(tile=>{const tr=tile.r+vd.dr,tc=tile.c+vd.dc;if(tr>=0&&tr<SIZE&&tc>=0&&tc<SIZE&&(board[tr][tc]===0||board[tr][tc]===tile.v))tile.el.classList.add('hint-tile');});
+}
+function setHintState(s){document.getElementById('hint-thinking').style.display=s==='thinking'?'flex':'none';document.getElementById('hint-body').classList.toggle('visible',s==='result');document.getElementById('hint-error').style.display=s==='error'?'block':'none';document.getElementById('btn-hint').classList.toggle('loading',s==='thinking');}
+function applyHint(){if(!currentHintDir)return;closeHint();setTimeout(()=>move(currentHintDir),150);}
+function showHintPanel(){document.getElementById('hint-panel').classList.add('show');}
+function closeHint(){document.getElementById('hint-panel').classList.remove('show');clearHints();}
+function closeHintOnBg(e){if(e.target===document.getElementById('hint-panel'))closeHint();}
+
+/* ══════ FIREBASE CONFIG ══════
+   ⚠️ 아래 FIREBASE_CONFIG를 본인의 Firebase 프로젝트 설정으로 교체하세요!
+   설정 방법:
+   1. https://console.firebase.google.com 접속
+   2. 새 프로젝트 생성 (또는 기존 프로젝트 선택)
+   3. 프로젝트 설정 → 앱 추가 → 웹 앱(</>)
+   4. 아래 firebaseConfig 값을 복사해서 붙여넣기
+   5. Realtime Database 메뉴 → 데이터베이스 만들기 → 테스트 모드로 시작
+══════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAnegWlKFncIqRnGPSRMTWD6dZ3SgtdK1s",
+  authDomain: "ai-cubic.firebaseapp.com",
+  databaseURL: "https://ai-cubic-default-rtdb.firebaseio.com",
+  projectId: "ai-cubic",
+  storageBucket: "ai-cubic.firebasestorage.app",
+  messagingSenderId: "145456441809",
+  appId: "1:145456441809:web:478adc3e1e58745f4618f0",
+  measurementId: "G-8RQXLVQ9TJ"
+};
+
+/* ══════ PLAYER SYSTEM (Firebase) ══════ */
+const PNAMES=['알파','베타','감마','델타','엡실론','제타','에타','쎄타','이오타','카파','람다','뮤','뉴','크시','파이','로','시그마','타우','카이','오메가'];
+const PCOLORS=['#f5a623','#5aacf5','#a855f7','#38d48a','#ef4444','#f97316','#06b6d4','#ec4899','#84cc16','#eab308'];
+let myId=null,myName=null,myColor=null,hbTimer=null;
+let fbDb=null,fbPlayersRef=null,fbConfigOk=false;
+
+function isFirebaseConfigured(){
+  return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
+}
+
+async function initFirebase(){
+  if(!isFirebaseConfigured()) return false;
+  try {
+    // Firebase SDK를 동적으로 로드
+    const {initializeApp} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const {getDatabase, ref, set, onValue, remove, serverTimestamp} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const app = initializeApp(FIREBASE_CONFIG);
+    fbDb = getDatabase(app);
+    fbPlayersRef = ref(fbDb, 'aicubic_players');
+    fbConfigOk = true;
+
+    // 실시간 리스너 등록 — 다른 플레이어 변화 즉시 반영
+    onValue(fbPlayersRef, (snapshot) => {
+      const data = snapshot.val();
+      if(!data) { renderPlayers([{id:myId,name:myName,color:myColor,score:score||0,moves:moves||0,ts:Date.now()}]); return; }
+      const now = Date.now();
+      const players = Object.values(data).filter(p => p && now - p.ts < 90000);
+      if(!players.find(p=>p.id===myId)) players.push({id:myId,name:myName,color:myColor,score:score||0,moves:moves||0,ts:Date.now()});
+      renderPlayers(players);
+      // 오래된 플레이어 청소 (내가 처음 접속한 플레이어일 때만)
+      Object.entries(data).forEach(([key, p]) => {
+        if(p && now - p.ts > 90000) remove(ref(fbDb, 'aicubic_players/'+key)).catch(()=>{});
+      });
+    });
+
+    return true;
+  } catch(e) {
+    console.warn('Firebase 초기화 실패:', e);
+    return false;
+  }
+}
+
+function initMe(){
+  try{const s=JSON.parse(sessionStorage.getItem('aicubic_me')||'null');if(s&&s.id){myId=s.id;myName=s.name;myColor=s.color;return;}}catch(e){}
+  myId='p_'+Math.random().toString(36).slice(2,10)+'_'+Date.now().toString(36);
+  myName=PNAMES[~~(Math.random()*PNAMES.length)]+~~(Math.random()*99+1);
+  myColor=PCOLORS[~~(Math.random()*PCOLORS.length)];
+  try{sessionStorage.setItem('aicubic_me',JSON.stringify({id:myId,name:myName,color:myColor}));}catch(e){}
+}
+
+async function regPlayer(){
+  if(!myId) return;
+  const mt=Math.max(...(board?board.flat():[0]),maxTile||0,0);
+  const playerData = {id:myId,name:myName,color:myColor,score:score||0,moves:moves||0,maxTile:mt||0,country:myCountry||null,ts:Date.now()};
+  if(fbConfigOk && fbDb){
+    try{
+      const {ref: fbRef, set: fbSet} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      await fbSet(fbRef(fbDb, 'aicubic_players/'+myId), playerData);
+    }catch(e){}
+  }
+}
+
+async function removeMe(){
+  if(!myId || !fbConfigOk || !fbDb) return;
+  try{
+    const {ref: fbRef, remove: fbRemove} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await fbRemove(fbRef(fbDb, 'aicubic_players/'+myId));
+  }catch(e){}
+}
+
+function setPlayerCount(n){document.getElementById('player-count').textContent=n;document.getElementById('ingame-player-count').textContent=n;}
+
+function renderPlayers(players){
+  setPlayerCount(players.length);
+  const av=document.getElementById('players-avatars');av.innerHTML='';
+  players.slice(0,7).forEach((p,i)=>{const el=document.createElement('div');el.className='avatar';el.style.cssText=`background:${p.color};color:#fff;animation-delay:${i*.05}s;z-index:${10-i}`;el.textContent=(p.name||'?')[0];el.title=p.name+(p.id===myId?' (나)':'');av.appendChild(el);});
+  if(players.length>7){const m=document.createElement('div');m.className='avatar-more';m.textContent='+'+(players.length-7);av.appendChild(m);}
+  const sc=document.getElementById('players-scroll');
+  if(!players.length){sc.innerHTML='<div class="players-empty">플레이어 없음</div>';return;}
+  const sorted=[...players].sort((a,b)=>(b.score||0)-(a.score||0));sc.innerHTML='';
+  sorted.forEach(p=>{const row=document.createElement('div');row.className='player-row';const isMe=p.id===myId;row.innerHTML=`<div class="player-avatar-sm" style="background:${p.color};color:#fff">${(p.name||'?')[0]}</div><div class="player-name">${esc(p.name||'?')}${isMe?'<span class="player-you">나</span>':''}</div><div class="player-score">${(p.score||0).toLocaleString()}</div>`;sc.appendChild(row);});
+}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function showFallbackPlayer(){
+  setPlayerCount(1);
+  const sc=document.getElementById('players-scroll');
+  sc.innerHTML=`<div class="player-row"><div class="player-avatar-sm" style="background:${myColor};color:#fff">${myName[0]}</div><div class="player-name">${esc(myName)}<span class="player-you">나</span></div><div class="player-score">${(score||0).toLocaleString()}</div></div>`;
+  const av=document.getElementById('players-avatars');av.innerHTML='';
+  const el=document.createElement('div');el.className='avatar';el.style.cssText=`background:${myColor};color:#fff`;el.textContent=myName[0];av.appendChild(el);
+}
+
+async function heartbeat(){
+  await regPlayer();
+  if(!fbConfigOk) showFallbackPlayer();
+  // Firebase 리스너가 있으면 renderPlayers는 자동 호출됨
+}
+
+async function startPlayerSystem(){
+  initMe();
+  loadMyCountry();
+  const ok = await initFirebase();
+  if(!ok){
+    console.warn('Firebase 미설정 — 로컬 단독 모드로 실행');
+    showFallbackPlayer();
+  } else {
+    await regPlayer();
+  }
+  hbTimer = setInterval(heartbeat, 15000);
+}
+
+window.addEventListener('beforeunload', ()=>{
+  clearInterval(hbTimer);
+  removeMe();
+});
+
+/* ══════ BOOT ══════ */
+(function(){
+  const best=parseInt(localStorage.getItem('2048best')||'0');
+  document.getElementById('start-best-score').textContent=best>0?best.toLocaleString():'없음';
+  const achieved=localStorage.getItem('aicubic_achieved');const saved=loadSaved();
+  document.getElementById('start-best-tile').textContent=(achieved||saved)?'131,072 🏆':'-';
+  initGridBg();newGame();startPlayerSystem();
+})();
+</script>
+</body>
+</html>
