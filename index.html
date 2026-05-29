@@ -112,6 +112,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .menu-action-btn.red{border-color:rgba(239,68,68,.2);}
 .menu-action-btn.red .mab-label{color:var(--red);}
 
+.country-auto-badge{font-size:.6rem;color:var(--green);background:rgba(56,212,138,.1);border:1px solid rgba(56,212,138,.2);border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;}
+.country-auto-badge.detecting{color:var(--subtext);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);animation:detectPulse 1.2s ease-in-out infinite;}
+@keyframes detectPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.country-auto-badge.manual{color:var(--blue);background:rgba(90,172,245,.1);border-color:rgba(90,172,245,.2);}
+
 /* Country Ranking */
 .ranking-tabs{display:flex;gap:6px;margin-bottom:12px;}
 .ranking-tab{flex:1;padding:7px 0;background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:10px;font-family:'Black Han Sans',sans-serif;font-size:.75rem;color:var(--subtext);cursor:pointer;text-align:center;transition:all .18s;}
@@ -326,7 +331,7 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
       <div class="country-select-row">
         <label>🌐 내 국가</label>
         <select class="country-select" id="my-country-select" onchange="onCountryChange(this.value)">
-          <option value="">-- 선택하세요 --</option>
+          <option value="">-- 감지 중… --</option>
           <option value="KR">🇰🇷 대한민국</option>
           <option value="US">🇺🇸 미국</option>
           <option value="JP">🇯🇵 일본</option>
@@ -362,6 +367,7 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
           <option value="NG">🇳🇬 나이지리아</option>
           <option value="OTHER">🌐 기타</option>
         </select>
+        <span class="country-auto-badge detecting" id="country-auto-badge">감지 중…</span>
       </div>
       <div class="ranking-tabs">
         <button class="ranking-tab active" onclick="switchRankTab('world',this)">🌍 전체</button>
@@ -493,15 +499,76 @@ const RANK_LS_KEY='aicubic_mycountry';
 let myCountry=null;
 let currentRankTab='world';
 
+function setCountryUI(code, mode){
+  try{
+    const sel=document.getElementById('my-country-select');
+    const badge=document.getElementById('country-auto-badge');
+    if(code) sel.value=code;
+    if(badge){
+      if(mode==='detecting'){
+        badge.className='country-auto-badge detecting';
+        badge.textContent='감지 중…';
+      } else if(mode==='auto'){
+        const cm=COUNTRY_MAP[code];
+        badge.className='country-auto-badge';
+        badge.textContent='처소 자동감지'+(cm?' — '+cm.flag+' '+cm.name:'');
+      } else {
+        badge.className='country-auto-badge manual';
+        badge.textContent='직접 선택';
+      }
+    }
+  }catch(e){}
+}
+
 function loadMyCountry(){
   const saved=localStorage.getItem(RANK_LS_KEY);
-  if(saved){myCountry=saved;try{document.getElementById('my-country-select').value=saved;}catch(e){}}
+  const savedMode=localStorage.getItem(RANK_LS_KEY+'_mode')||'auto';
+  if(saved){ myCountry=saved; setCountryUI(saved, savedMode); }
+}
+
+async function autoDetectCountry(){
+  const savedMode=localStorage.getItem(RANK_LS_KEY+'_mode');
+  if(savedMode==='manual') return;
+  setCountryUI(null,'detecting');
+  try{
+    const res=await fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(5000)});
+    const d=await res.json();
+    if(d.country_code && COUNTRY_MAP[d.country_code]){
+      myCountry=d.country_code;
+      localStorage.setItem(RANK_LS_KEY,myCountry);
+      localStorage.setItem(RANK_LS_KEY+'_mode','auto');
+      setCountryUI(myCountry,'auto');
+      regPlayer();return;
+    }
+  }catch(e){}
+  try{
+    const res2=await fetch('https://ip-api.com/json/?fields=countryCode',{signal:AbortSignal.timeout(5000)});
+    const d2=await res2.json();
+    if(d2.countryCode && COUNTRY_MAP[d2.countryCode]){
+      myCountry=d2.countryCode;
+      localStorage.setItem(RANK_LS_KEY,myCountry);
+      localStorage.setItem(RANK_LS_KEY+'_mode','auto');
+      setCountryUI(myCountry,'auto');
+      regPlayer();return;
+    }
+  }catch(e){}
+  const fallback=myCountry||'OTHER';
+  myCountry=fallback;
+  localStorage.setItem(RANK_LS_KEY,fallback);
+  localStorage.setItem(RANK_LS_KEY+'_mode','auto');
+  setCountryUI(fallback,'auto');
+  regPlayer();
 }
 function onCountryChange(val){
   myCountry=val||null;
-  if(myCountry)localStorage.setItem(RANK_LS_KEY,myCountry);
-  else localStorage.removeItem(RANK_LS_KEY);
-  // 플레이어 정보 업데이트
+  if(myCountry){
+    localStorage.setItem(RANK_LS_KEY,myCountry);
+    localStorage.setItem(RANK_LS_KEY+'_mode','manual');
+    setCountryUI(myCountry,'manual');
+  } else {
+    localStorage.removeItem(RANK_LS_KEY);
+    localStorage.removeItem(RANK_LS_KEY+'_mode');
+  }
   regPlayer();
   loadRanking();
 }
@@ -516,33 +583,37 @@ async function loadRanking(){
   if(!wrap)return;
   wrap.innerHTML='<div class="ranking-loading"><span>불러오는 중…</span></div>';
 
-  // Firebase에서 플레이어 목록 가져오기
-  let players=[];
+  let records=[];
   try{
     if(fbConfigOk && fbDb){
-      const {ref:fbRef, get} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-      const snap = await get(fbRef(fbDb,'aicubic_players'));
+      const {ref:fbRef,get} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      // 역대 기록(aicubic_records)에서 읽기
+      const snap = await get(fbRef(fbDb,'aicubic_records'));
       const data = snap.val();
-      if(data){
-        const now=Date.now();
-        players=Object.values(data).filter(p=>p&&now-p.ts<3600000&&(p.score||0)>0);
-      }
+      if(data) records=Object.values(data).filter(p=>p&&(p.bestScore||0)>0);
     }
   }catch(e){}
 
-  // 탭에 따라 필터
-  let filtered=players;
-  if(currentRankTab==='country'){
-    if(!myCountry){wrap.innerHTML='<div class="ranking-empty">먼저 국가를 선택해 주세요</div>';return;}
-    filtered=players.filter(p=>p.country===myCountry);
+  // 내 기록이 없으면 현재 세션 기록으로 로컬 추가
+  const bs=parseInt(localStorage.getItem('2048best')||'0');
+  if(myId && bs>0 && !records.find(r=>r.id===myId)){
+    const mt=Math.max(...(board?board.flat():[0]),maxTile||0,0);
+    records.push({id:myId,name:myName,color:myColor,bestScore:bs,maxTile:mt||0,country:myCountry||null});
   }
 
-  // 점수 내림차순 정렬, 상위 50명
-  filtered.sort((a,b)=>(b.score||0)-(a.score||0));
-  filtered=filtered.slice(0,50);
+  // 탭에 따라 필터
+  let filtered=records;
+  if(currentRankTab==='country'){
+    if(!myCountry){wrap.innerHTML='<div class="ranking-empty">먼저 국가를 선택해 주세요</div>';return;}
+    filtered=records.filter(p=>p.country===myCountry);
+  }
+
+  // 점수 내림차순 정렬, 상위 100명
+  filtered.sort((a,b)=>(b.bestScore||0)-(a.bestScore||0));
+  filtered=filtered.slice(0,100);
 
   if(!filtered.length){
-    wrap.innerHTML=`<div class="ranking-empty">${currentRankTab==='country'?'이 국가의 플레이어가 없습니다':'아직 기록된 플레이어가 없습니다'}</div>`;
+    wrap.innerHTML=`<div class="ranking-empty">${currentRankTab==='country'?'이 국가의 기록이 없습니다':'아직 등록된 기록이 없습니다'}</div>`;
     return;
   }
 
@@ -553,7 +624,7 @@ async function loadRanking(){
     const cm=p.country?COUNTRY_MAP[p.country]:null;
     const flag=cm?cm.flag:'🌐';
     const cname=cm?cm.name:'';
-    const tile=p.maxTile&&p.maxTile>0?`<div class="rank-tile">최고 ${p.maxTile.toLocaleString()}</div>`:'';
+    const tile=p.maxTile&&p.maxTile>0?`<div class="rank-tile">최고 타일 ${p.maxTile.toLocaleString()}</div>`:'';
     return `<div class="ranking-row${isMe?' me':''}">
       <div class="rank-num ${numClass}">${numText}</div>
       <div class="rank-flag">${flag}</div>
@@ -562,7 +633,7 @@ async function loadRanking(){
         ${cname?`<div class="rank-country">${cname}</div>`:''}
       </div>
       <div>
-        <div class="rank-score">${(p.score||0).toLocaleString()}</div>
+        <div class="rank-score">${(p.bestScore||0).toLocaleString()}</div>
         ${tile}
       </div>
     </div>`;
@@ -814,7 +885,7 @@ function move(dir){
   const mult=triggerCombo(mergeCount);
   let raw=0;mergeValues.forEach(v=>raw+=v);
   score+=Math.round(raw*mult);
-  if(score>bestScore){bestScore=score;localStorage.setItem('2048best',bestScore);}
+  if(score>bestScore){bestScore=score;localStorage.setItem('2048best',bestScore);regPlayer();}
   updateScoreUI();updateHintBtn();
 
   // Build posMap ONCE from current tileMap state (before any mutation)
@@ -1097,11 +1168,28 @@ function initMe(){
 async function regPlayer(){
   if(!myId) return;
   const mt=Math.max(...(board?board.flat():[0]),maxTile||0,0);
+  const bs=parseInt(localStorage.getItem('2048best')||'0');
   const playerData = {id:myId,name:myName,color:myColor,score:score||0,moves:moves||0,maxTile:mt||0,country:myCountry||null,ts:Date.now()};
   if(fbConfigOk && fbDb){
     try{
-      const {ref: fbRef, set: fbSet} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-      await fbSet(fbRef(fbDb, 'aicubic_players/'+myId), playerData);
+      const {ref:fbRef,set:fbSet,get} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      // 현재 접속자 목록 업데이트
+      await fbSet(fbRef(fbDb,'aicubic_players/'+myId), playerData);
+      // 역대 기록 업데이트 — 현재 bestScore가 저장된 것보다 높을 때만 덮어씀
+      if(bs>0){
+        const recRef=fbRef(fbDb,'aicubic_records/'+myId);
+        const snap=await get(recRef);
+        const prev=snap.val();
+        if(!prev || bs>(prev.bestScore||0)){
+          await fbSet(recRef,{
+            id:myId,name:myName,color:myColor,
+            bestScore:bs,
+            maxTile:mt||0,
+            country:myCountry||null,
+            updatedAt:Date.now()
+          });
+        }
+      }
     }catch(e){}
   }
 }
@@ -1146,6 +1234,7 @@ async function heartbeat(){
 async function startPlayerSystem(){
   initMe();
   loadMyCountry();
+  autoDetectCountry();
   const ok = await initFirebase();
   if(!ok){
     console.warn('Firebase 미설정 — 로컬 단독 모드로 실행');
