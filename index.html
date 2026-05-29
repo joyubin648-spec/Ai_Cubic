@@ -62,6 +62,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .start-btn:active{transform:translateY(0) scale(0.98);}
 @keyframes btnPulse{0%,100%{box-shadow:0 6px 30px rgba(245,166,35,.35)}50%{box-shadow:0 6px 50px rgba(245,166,35,.6)}}
 .start-sub{font-size:.65rem;color:var(--subtext);letter-spacing:.1em;margin-top:14px;}
+.nickname-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:16px;width:100%;max-width:280px;}
+.nickname-label{font-size:.6rem;letter-spacing:.18em;color:var(--subtext);text-transform:uppercase;}
+.nickname-row{display:flex;align-items:center;gap:8px;width:100%;background:var(--surface);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 12px;transition:border-color .18s;}
+.nickname-row:focus-within{border-color:rgba(245,166,35,.5);box-shadow:0 0 0 2px rgba(245,166,35,.1);}
+.nickname-input{flex:1;background:transparent;border:none;color:var(--text);font-family:'Black Han Sans',sans-serif;font-size:.95rem;letter-spacing:.04em;outline:none;min-width:0;}
+.nickname-input::placeholder{color:var(--subtext);font-family:'Noto Sans KR',sans-serif;font-weight:400;font-size:.82rem;}
+.nickname-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:.72rem;color:#fff;flex-shrink:0;}
 .start-particles{position:fixed;inset:0;pointer-events:none;z-index:0;}
 .particle{position:absolute;border-radius:50%;opacity:0;animation:pFloat linear infinite;}
 @keyframes pFloat{0%{opacity:0;transform:translateY(100vh) scale(0)}10%{opacity:.6}90%{opacity:.2}100%{opacity:0;transform:translateY(-10vh) scale(1.2)}}
@@ -283,6 +290,13 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
       </div>
       <div class="players-avatars" id="players-avatars"></div>
       <div class="players-scroll" id="players-scroll"><div class="players-empty">불러오는 중…</div></div>
+    </div>
+    <div class="nickname-wrap">
+      <div class="nickname-label">닉네임</div>
+      <div class="nickname-row">
+        <input id="nickname-input" class="nickname-input" type="text" maxlength="16" placeholder="닉네임 입력…" autocomplete="off" spellcheck="false" oninput="onNicknameInput(this.value)" onkeydown="if(event.key==='Enter')startGame()">
+        <div class="nickname-avatar" id="nickname-avatar"></div>
+      </div>
     </div>
     <button class="start-btn" onclick="startGame()">게임 시작</button>
     <div class="start-sub">← → ↑ ↓ · 터치 스와이프 · 🎙 음성</div>
@@ -601,44 +615,71 @@ async function loadRanking(){
     records.push({id:myId,name:myName,color:myColor,bestScore:bs,maxTile:mt||0,country:myCountry||null});
   }
 
-  // 탭에 따라 필터
-  let filtered=records;
+  // 탭에 따라 필터 및 렌더
   if(currentRankTab==='country'){
+    // ── 내 나라 탭: 같은 나라 전체 표시, 1등만 순위 번호 ──
     if(!myCountry){wrap.innerHTML='<div class="ranking-empty">먼저 국가를 선택해 주세요</div>';return;}
-    filtered=records.filter(p=>p.country===myCountry);
+    let filtered=records.filter(p=>p.country===myCountry);
+    filtered.sort((a,b)=>(b.bestScore||0)-(a.bestScore||0));
+    if(!filtered.length){wrap.innerHTML='<div class="ranking-empty">이 국가의 기록이 없습니다</div>';return;}
+    const html=filtered.map((p,i)=>{
+      const isMe=p.id===myId;
+      const cm=p.country?COUNTRY_MAP[p.country]:null;
+      const flag=cm?cm.flag:'🌐';
+      const tile=p.maxTile&&p.maxTile>0?`<div class="rank-tile">최고 타일 ${p.maxTile.toLocaleString()}</div>`:'';
+      // 1등만 순위 번호(🥇), 나머지는 빈 칸
+      const numClass=i===0?'gold':'';
+      const numText=i===0?'🥇':'';
+      return `<div class="ranking-row${isMe?' me':''}">
+        <div class="rank-num ${numClass}">${numText}</div>
+        <div class="rank-flag">${flag}</div>
+        <div class="rank-info">
+          <div class="rank-name">${esc(p.name||'?')}${isMe?'<span class="rank-you">나</span>':''}</div>
+        </div>
+        <div>
+          <div class="rank-score">${(p.bestScore||0).toLocaleString()}</div>
+          ${tile}
+        </div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML=`<div class="ranking-list">${html}</div>`;
+  } else {
+    // ── 전체 탭: 나라별 1등 대표만 추출 → 나라 대표 순위 ──
+    // 나라별로 최고 점수 1명만 추출
+    const countryBest={};
+    records.forEach(p=>{
+      const key=p.country||'__none__';
+      if(!countryBest[key]||(p.bestScore||0)>(countryBest[key].bestScore||0)){
+        countryBest[key]=p;
+      }
+    });
+    let filtered=Object.values(countryBest);
+    filtered.sort((a,b)=>(b.bestScore||0)-(a.bestScore||0));
+    filtered=filtered.slice(0,100);
+    if(!filtered.length){wrap.innerHTML='<div class="ranking-empty">아직 등록된 기록이 없습니다</div>';return;}
+    const html=filtered.map((p,i)=>{
+      const isMe=p.id===myId;
+      const numClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const numText=i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+      const cm=p.country?COUNTRY_MAP[p.country]:null;
+      const flag=cm?cm.flag:'🌐';
+      const cname=cm?cm.name:'';
+      const tile=p.maxTile&&p.maxTile>0?`<div class="rank-tile">최고 타일 ${p.maxTile.toLocaleString()}</div>`:'';
+      return `<div class="ranking-row${isMe?' me':''}">
+        <div class="rank-num ${numClass}">${numText}</div>
+        <div class="rank-flag">${flag}</div>
+        <div class="rank-info">
+          <div class="rank-name">${esc(p.name||'?')}${isMe?'<span class="rank-you">나</span>':''}</div>
+          ${cname?`<div class="rank-country">${cname}</div>`:''}
+        </div>
+        <div>
+          <div class="rank-score">${(p.bestScore||0).toLocaleString()}</div>
+          ${tile}
+        </div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML=`<div class="ranking-list">${html}</div>`;
   }
-
-  // 점수 내림차순 정렬, 상위 100명
-  filtered.sort((a,b)=>(b.bestScore||0)-(a.bestScore||0));
-  filtered=filtered.slice(0,100);
-
-  if(!filtered.length){
-    wrap.innerHTML=`<div class="ranking-empty">${currentRankTab==='country'?'이 국가의 기록이 없습니다':'아직 등록된 기록이 없습니다'}</div>`;
-    return;
-  }
-
-  const html=filtered.map((p,i)=>{
-    const isMe=p.id===myId;
-    const numClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const numText=i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
-    const cm=p.country?COUNTRY_MAP[p.country]:null;
-    const flag=cm?cm.flag:'🌐';
-    const cname=cm?cm.name:'';
-    const tile=p.maxTile&&p.maxTile>0?`<div class="rank-tile">최고 타일 ${p.maxTile.toLocaleString()}</div>`:'';
-    return `<div class="ranking-row${isMe?' me':''}">
-      <div class="rank-num ${numClass}">${numText}</div>
-      <div class="rank-flag">${flag}</div>
-      <div class="rank-info">
-        <div class="rank-name">${esc(p.name||'?')}${isMe?'<span class="rank-you">나</span>':''}</div>
-        ${cname?`<div class="rank-country">${cname}</div>`:''}
-      </div>
-      <div>
-        <div class="rank-score">${(p.bestScore||0).toLocaleString()}</div>
-        ${tile}
-      </div>
-    </div>`;
-  }).join('');
-  wrap.innerHTML=`<div class="ranking-list">${html}</div>`;
 }
 
 /* ══════ AUDIO ══════ */
@@ -1158,11 +1199,34 @@ async function initFirebase(){
 }
 
 function initMe(){
-  try{const s=JSON.parse(sessionStorage.getItem('aicubic_me')||'null');if(s&&s.id){myId=s.id;myName=s.name;myColor=s.color;return;}}catch(e){}
+  // localStorage에서 영구 저장된 데이터 우선 로드
+  try{const s=JSON.parse(localStorage.getItem('aicubic_me_v2')||'null');if(s&&s.id){myId=s.id;myName=s.name;myColor=s.color;syncNicknameUI();return;}}catch(e){}
+  // 구버전 sessionStorage 호환
+  try{const s=JSON.parse(sessionStorage.getItem('aicubic_me')||'null');if(s&&s.id){myId=s.id;myName=s.name;myColor=s.color;saveMe();syncNicknameUI();return;}}catch(e){}
+  // 신규 플레이어
   myId='p_'+Math.random().toString(36).slice(2,10)+'_'+Date.now().toString(36);
   myName=PNAMES[~~(Math.random()*PNAMES.length)]+~~(Math.random()*99+1);
   myColor=PCOLORS[~~(Math.random()*PCOLORS.length)];
-  try{sessionStorage.setItem('aicubic_me',JSON.stringify({id:myId,name:myName,color:myColor}));}catch(e){}
+  saveMe();
+  syncNicknameUI();
+}
+function saveMe(){
+  try{localStorage.setItem('aicubic_me_v2',JSON.stringify({id:myId,name:myName,color:myColor}));}catch(e){}
+}
+function syncNicknameUI(){
+  try{
+    const inp=document.getElementById('nickname-input');
+    const av=document.getElementById('nickname-avatar');
+    if(inp&&!inp.value)inp.value=myName;
+    if(av){av.style.background=myColor;av.textContent=(myName||'?')[0];}
+  }catch(e){}
+}
+function onNicknameInput(val){
+  const trimmed=val.trim();
+  if(trimmed){myName=trimmed;}
+  saveMe();
+  const av=document.getElementById('nickname-avatar');
+  if(av){av.style.background=myColor;av.textContent=(myName||'?')[0];}
 }
 
 async function regPlayer(){
