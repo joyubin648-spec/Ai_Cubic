@@ -287,104 +287,94 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
 .t16777216{background:radial-gradient(ellipse at 50% 50%,#fff 0%,#ffe066 15%,#ff4400 40%,#7700cc 70%,#000 100%);color:#fff;text-shadow:0 0 12px #fff;animation:remnant 1.4s ease-in-out infinite;}
 @keyframes remnant{0%,100%{box-shadow:0 0 20px rgba(200,100,255,.6),0 0 40px rgba(255,100,0,.3);filter:brightness(1.1)}50%{box-shadow:0 0 50px rgba(220,120,255,.9),0 0 80px rgba(255,150,0,.5);filter:brightness(1.6)}}
 
-/* 33554432: 블랙홀 — 어둠과 흡수 고리 */
+/* 33554432: 블랙홀 — box-shadow 동심 고리 (overflow 침범 없음) */
 .t33554432{
-  background:radial-gradient(ellipse at 50% 50%,#000 0%,#000 30%,#1a0000 50%,#000 100%);
+  background:radial-gradient(ellipse at 50% 50%,#000 0%,#050005 35%,#0a0010 65%,#000 100%);
   color:#ff9500;
-  text-shadow:0 0 10px rgba(255,140,0,.9);
-  animation:blackhole 2s linear infinite;
-  position:relative;
-  overflow:visible !important;
-}
-.t33554432::before{
-  content:'';position:absolute;inset:-4px;border-radius:inherit;
-  background:conic-gradient(from 0deg,transparent 0%,rgba(255,120,0,.6) 15%,rgba(255,200,0,.8) 30%,rgba(255,120,0,.6) 45%,transparent 50%,rgba(180,60,255,.5) 65%,rgba(100,160,255,.7) 80%,rgba(180,60,255,.5) 90%,transparent 100%);
-  animation:bhRing 1.2s linear infinite;
-  z-index:-1;
-  filter:blur(3px);
-}
-.t33554432::after{
-  content:'';position:absolute;inset:-8px;border-radius:inherit;
-  background:conic-gradient(from 180deg,transparent 0%,rgba(100,160,255,.3) 20%,rgba(255,100,0,.4) 40%,transparent 50%,rgba(255,200,100,.3) 70%,rgba(80,120,255,.3) 85%,transparent 100%);
-  animation:bhRing 2s linear infinite reverse;
-  z-index:-2;
-  filter:blur(6px);
+  text-shadow:0 0 8px rgba(255,140,0,.9),0 0 16px rgba(255,80,0,.5);
+  animation:blackhole 1.6s ease-in-out infinite;
 }
 @keyframes blackhole{
-  0%,100%{box-shadow:0 0 0 2px rgba(255,120,0,.4),0 0 0 5px rgba(255,80,0,.2),0 0 30px rgba(255,100,0,.3),inset 0 0 20px rgba(0,0,0,.9);}
-  50%{box-shadow:0 0 0 3px rgba(255,160,0,.6),0 0 0 8px rgba(255,100,0,.3),0 0 50px rgba(255,120,0,.5),inset 0 0 30px rgba(0,0,0,1);}
+  0%  {box-shadow:inset 0 0 14px #000,0 0 0 1.5px rgba(255,140,0,.9),0 0 0 3px rgba(255,80,0,.4),0 0 0 5px rgba(200,40,0,.2),0 0 0 7px rgba(120,0,180,.15),0 0 12px rgba(255,100,0,.35);}
+  25% {box-shadow:inset 0 0 18px #000,0 0 0 1.5px rgba(255,180,0,1),  0 0 0 3.5px rgba(255,120,0,.55),0 0 0 6px rgba(220,60,0,.28),0 0 0 9px rgba(140,0,200,.2), 0 0 20px rgba(255,120,0,.5);}
+  50% {box-shadow:inset 0 0 22px #000,0 0 0 2px rgba(120,60,255,.8),  0 0 0 4px rgba(80,140,255,.5), 0 0 0 7px rgba(40,80,200,.25),0 0 0 11px rgba(20,40,120,.15),0 0 28px rgba(100,100,255,.4);}
+  75% {box-shadow:inset 0 0 18px #000,0 0 0 1.5px rgba(255,100,200,.8),0 0 0 3.5px rgba(200,60,180,.5),0 0 0 6px rgba(140,20,120,.25),0 0 0 9px rgba(80,0,80,.15), 0 0 20px rgba(200,80,200,.35);}
+  100%{box-shadow:inset 0 0 14px #000,0 0 0 1.5px rgba(255,140,0,.9),0 0 0 3px rgba(255,80,0,.4),0 0 0 5px rgba(200,40,0,.2),0 0 0 7px rgba(120,0,180,.15),0 0 12px rgba(255,100,0,.35);}
 }
-@keyframes bhRing{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-/* 67108864: 나선 은하 — 중심핵 + 나선팔 + 성운 고리 */
+/* 67108864: 나선 은하 — canvas 기반 실시간 렌더링, box-shadow 고리 */
 .t67108864{
-  background:
-    radial-gradient(ellipse at 50% 50%,#fffff0 0%,#fff5c0 8%,#e8c87a 16%,#b07a3a 26%,#4a2a1a 38%,#1a0a2a 55%,#050210 100%);
+  background:radial-gradient(ellipse at 50% 50%,#fffbe8 0%,#fff0a0 7%,#e8c060 15%,#9a6020 26%,#3a1808 40%,#150520 58%,#050210 100%);
   color:#fff;
-  text-shadow:0 0 14px rgba(255,255,200,.95),0 0 28px rgba(255,220,100,.7);
-  animation:galaxyCore 3s ease-in-out infinite;
+  text-shadow:0 0 10px rgba(255,255,180,1),0 0 22px rgba(255,210,80,.8),0 0 40px rgba(255,180,40,.4);
+  animation:galaxyTile 2s ease-in-out infinite;
   position:relative;
-  overflow:visible !important;
 }
-/* 나선팔 고리 1 — 안쪽 (핑크/붉은 성운) */
+/* 나선팔: 타일 내부에서 ::before로 회전 오버레이 (inset:0 → 경계 침범 없음) */
 .t67108864::before{
-  content:'';position:absolute;inset:-5px;border-radius:inherit;
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
   background:conic-gradient(
-    from 0deg,
-    transparent 0%,
-    rgba(200,160,255,.15) 5%,
-    rgba(180,100,255,.4) 12%,
-    rgba(255,120,160,.5) 18%,
-    rgba(200,80,120,.3) 24%,
-    transparent 30%,
-    transparent 35%,
-    rgba(150,180,255,.4) 42%,
-    rgba(100,160,255,.5) 48%,
-    rgba(180,120,255,.3) 54%,
-    transparent 60%,
-    transparent 65%,
-    rgba(255,140,180,.4) 72%,
-    rgba(200,100,140,.3) 78%,
-    transparent 85%,
-    transparent 90%,
-    rgba(140,160,255,.3) 96%,
-    transparent 100%
+    from 0deg at 50% 50%,
+    transparent        0deg,
+    rgba(255,180,120,.0)  20deg,
+    rgba(255,160,100,.18) 40deg,
+    rgba(255,200,160,.28) 55deg,
+    rgba(220,140,80,.18)  70deg,
+    transparent           90deg,
+    transparent           140deg,
+    rgba(160,200,255,.0)  160deg,
+    rgba(140,190,255,.22) 180deg,
+    rgba(180,220,255,.32) 195deg,
+    rgba(220,180,255,.2)  215deg,
+    transparent           235deg,
+    transparent           270deg,
+    rgba(255,160,180,.0)  285deg,
+    rgba(255,140,160,.18) 300deg,
+    rgba(255,180,200,.25) 315deg,
+    rgba(200,120,140,.15) 330deg,
+    transparent           350deg,
+    transparent           360deg
   );
-  animation:galaxyArm1 4s linear infinite;
-  filter:blur(2px);
-  z-index:-1;
+  animation:galaxyArm 5s linear infinite;
+  mix-blend-mode:screen;
+  opacity:.85;
 }
-/* 나선팔 고리 2 — 바깥쪽 (파란 외곽 고리) */
+/* 외곽 파란 나선팔 오버레이 */
 .t67108864::after{
-  content:'';position:absolute;inset:-10px;border-radius:inherit;
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
   background:conic-gradient(
-    from 60deg,
-    transparent 0%,
-    rgba(100,160,255,.2) 8%,
-    rgba(140,200,255,.45) 16%,
-    rgba(180,220,255,.35) 22%,
-    rgba(200,180,255,.25) 28%,
-    transparent 35%,
-    transparent 42%,
-    rgba(80,140,220,.35) 50%,
-    rgba(120,180,255,.45) 57%,
-    rgba(160,200,255,.3) 63%,
-    transparent 70%,
-    transparent 78%,
-    rgba(100,160,255,.3) 86%,
-    rgba(140,190,255,.25) 92%,
-    transparent 100%
+    from 90deg at 50% 50%,
+    transparent         0deg,
+    rgba(100,160,255,.0)   30deg,
+    rgba(120,180,255,.2)   50deg,
+    rgba(160,210,255,.28)  65deg,
+    rgba(100,160,220,.16)  80deg,
+    transparent            100deg,
+    transparent            160deg,
+    rgba(80,140,255,.18)   180deg,
+    rgba(120,180,255,.25)  200deg,
+    rgba(160,200,255,.16)  215deg,
+    transparent            235deg,
+    transparent            310deg,
+    rgba(100,160,255,.15)  330deg,
+    rgba(140,190,255,.2)   345deg,
+    transparent            360deg
   );
-  animation:galaxyArm2 6s linear infinite;
-  filter:blur(4px);
-  z-index:-2;
+  animation:galaxyArm 8s linear infinite reverse;
+  mix-blend-mode:screen;
+  opacity:.7;
 }
-@keyframes galaxyCore{
-  0%,100%{box-shadow:0 0 0 1px rgba(255,240,180,.3),0 0 20px rgba(255,220,120,.5),0 0 50px rgba(200,160,255,.2);}
-  50%{box-shadow:0 0 0 2px rgba(255,250,200,.5),0 0 35px rgba(255,230,140,.7),0 0 80px rgba(220,180,255,.35);}
+@keyframes galaxyTile{
+  0%,100%{box-shadow:inset 0 0 8px rgba(255,220,100,.2),0 0 0 1px rgba(255,240,160,.4),0 0 0 2.5px rgba(200,160,255,.25),0 0 0 4px rgba(150,180,255,.15),0 0 14px rgba(255,220,120,.4),0 0 28px rgba(200,160,255,.15);}
+  50%{box-shadow:inset 0 0 12px rgba(255,230,120,.3),0 0 0 1.5px rgba(255,250,180,.6),0 0 0 3.5px rgba(220,180,255,.4),0 0 0 6px rgba(160,200,255,.25),0 0 22px rgba(255,230,140,.6),0 0 44px rgba(210,170,255,.25);}
 }
-@keyframes galaxyArm1{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes galaxyArm2{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+@keyframes galaxyArm{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .hint-error{text-align:center;padding:10px 0;color:var(--red);font-size:.8rem;line-height:1.65;}
 .hint-counter{font-size:.62rem;color:var(--subtext);text-align:center;margin-top:7px;}
 .info-strip{margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;}
@@ -1603,8 +1593,18 @@ function devSetScore(){
   inp.value='';
 }
 
+function devSetBest(){
+  const inp=document.getElementById('dev-best-val');
+  const v=parseInt(inp.value);
+  if(isNaN(v)||v<0){devLog('유효한 점수를 입력하세요');return;}
+  bestScore=v;
+  localStorage.setItem('2048best',String(v));
+  updateScoreUI();
+  devLog('최고 점수 → '+v.toLocaleString());
+  inp.value='';
+}
 function devClearBest(){
-  if(!confirm('최고 점수 기록을 삭제할까요?'))return;
+  if(!confirm('최고 점수 기록을 초기화할까요?'))return;
   localStorage.removeItem('2048best');
   bestScore=0;
   updateScoreUI();
@@ -1739,6 +1739,21 @@ async function devDeleteAll(){
     </div>
 
 
+
+    <div class="dev-section">
+      <div class="dev-section-label">📊 점수 조작</div>
+      <div class="dev-row">
+        <input id="dev-score-val" class="dev-input" type="number" placeholder="현재 점수 설정" min="0">
+        <button class="dev-btn accent" onclick="devSetScore()">설정</button>
+      </div>
+      <div class="dev-row">
+        <input id="dev-best-val" class="dev-input" type="number" placeholder="최고 점수 설정" min="0">
+        <button class="dev-btn accent" onclick="devSetBest()">설정</button>
+      </div>
+      <div class="dev-row">
+        <button class="dev-btn" onclick="devClearBest()">💀 최고기록 초기화</button>
+      </div>
+    </div>
 
     <div class="dev-section">
       <div class="dev-section-label">🌐 Firebase 랭킹</div>
