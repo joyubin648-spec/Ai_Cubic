@@ -209,7 +209,7 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
 .cell-bg{background:var(--cell-bg);border-radius:var(--radius);position:relative;}
 .cell-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.025) 0%,transparent 50%);border-radius:inherit;}
 .tile-layer{position:absolute;pointer-events:none;}
-.tile{position:absolute;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:1.8rem;will-change:transform;z-index:1;transition:transform var(--anim) var(--ease-slide);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 3px 10px rgba(0,0,0,.34);}
+.tile{position:absolute;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:1.8rem;will-change:transform;z-index:1;transition:transform var(--anim) var(--ease-slide);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 3px 10px rgba(0,0,0,.34);overflow:hidden;isolation:isolate;}
 .tile.is-new{animation:tNew .24s var(--ease-bounce) both;}
 @keyframes tNew{from{transform:var(--base-tx) scale(0) rotate(-6deg);opacity:0}to{transform:var(--base-tx) scale(1) rotate(0);opacity:1}}
 .tile.is-merge{animation:tMerge .32s var(--ease-bounce) both;z-index:2;}
@@ -287,20 +287,57 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
 .t16777216{background:radial-gradient(ellipse at 50% 50%,#fff 0%,#ffe066 15%,#ff4400 40%,#7700cc 70%,#000 100%);color:#fff;text-shadow:0 0 12px #fff;animation:remnant 1.4s ease-in-out infinite;}
 @keyframes remnant{0%,100%{box-shadow:0 0 20px rgba(200,100,255,.6),0 0 40px rgba(255,100,0,.3);filter:brightness(1.1)}50%{box-shadow:0 0 50px rgba(220,120,255,.9),0 0 80px rgba(255,150,0,.5);filter:brightness(1.6)}}
 
-/* 33554432: 블랙홀 — box-shadow 동심 고리 (overflow 침범 없음) */
+/* 33554432: TON618 블랙홀 — 강착 원반 + 사건 지평선 */
 .t33554432{
-  background:radial-gradient(ellipse at 50% 50%,#000 0%,#050005 35%,#0a0010 65%,#000 100%);
-  color:#ff9500;
-  text-shadow:0 0 8px rgba(255,140,0,.9),0 0 16px rgba(255,80,0,.5);
-  animation:blackhole 1.6s ease-in-out infinite;
+  background:
+    radial-gradient(circle at 50% 50%, #000 0%, #000 28%, transparent 28%),
+    conic-gradient(from 0deg at 50% 50%,
+      #ff6a00 0deg, #ffb300 18deg, #ff4500 36deg,
+      #c00 54deg, #600 72deg, #000 90deg,
+      #000 162deg,
+      #1a0030 180deg, #3a0060 198deg, #6000aa 216deg,
+      #3a0060 234deg, #000 252deg,
+      #000 306deg,
+      #ff4500 324deg, #ff8c00 342deg, #ff6a00 360deg
+    );
+  color:#ffcc00;
+  text-shadow:0 0 6px rgba(255,180,0,1),0 0 14px rgba(255,100,0,.7);
+  animation:tonBH 3s linear infinite;
+  position:relative;
 }
-@keyframes blackhole{
-  0%  {box-shadow:inset 0 0 14px #000,0 0 0 1.5px rgba(255,140,0,.9),0 0 0 3px rgba(255,80,0,.4),0 0 0 5px rgba(200,40,0,.2),0 0 0 7px rgba(120,0,180,.15),0 0 12px rgba(255,100,0,.35);}
-  25% {box-shadow:inset 0 0 18px #000,0 0 0 1.5px rgba(255,180,0,1),  0 0 0 3.5px rgba(255,120,0,.55),0 0 0 6px rgba(220,60,0,.28),0 0 0 9px rgba(140,0,200,.2), 0 0 20px rgba(255,120,0,.5);}
-  50% {box-shadow:inset 0 0 22px #000,0 0 0 2px rgba(120,60,255,.8),  0 0 0 4px rgba(80,140,255,.5), 0 0 0 7px rgba(40,80,200,.25),0 0 0 11px rgba(20,40,120,.15),0 0 28px rgba(100,100,255,.4);}
-  75% {box-shadow:inset 0 0 18px #000,0 0 0 1.5px rgba(255,100,200,.8),0 0 0 3.5px rgba(200,60,180,.5),0 0 0 6px rgba(140,20,120,.25),0 0 0 9px rgba(80,0,80,.15), 0 0 20px rgba(200,80,200,.35);}
-  100%{box-shadow:inset 0 0 14px #000,0 0 0 1.5px rgba(255,140,0,.9),0 0 0 3px rgba(255,80,0,.4),0 0 0 5px rgba(200,40,0,.2),0 0 0 7px rgba(120,0,180,.15),0 0 12px rgba(255,100,0,.35);}
+.t33554432::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:
+    radial-gradient(circle at 50% 50%, #000 0%, #000 32%, transparent 32%),
+    conic-gradient(from 180deg at 50% 50%,
+      transparent 0deg,
+      rgba(255,120,0,.6) 15deg, rgba(255,200,60,.8) 30deg,
+      rgba(255,80,0,.5) 45deg, transparent 60deg,
+      transparent 150deg,
+      rgba(80,0,180,.4) 165deg, rgba(140,40,255,.6) 185deg,
+      rgba(80,0,180,.4) 200deg, transparent 215deg,
+      transparent 300deg,
+      rgba(255,140,0,.4) 330deg, transparent 360deg
+    );
+  animation:tonDisk 2s linear infinite reverse;
+  mix-blend-mode:screen;
 }
+.t33554432::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(circle at 50% 50%,
+    #000 0%, #000 30%,
+    rgba(255,80,0,.05) 32%, rgba(255,120,0,.12) 38%,
+    rgba(255,160,0,.06) 44%, transparent 50%,
+    transparent 100%
+  );
+}
+@keyframes tonBH{
+  0%  {filter:brightness(1)   hue-rotate(0deg);}
+  33% {filter:brightness(1.3) hue-rotate(15deg);}
+  66% {filter:brightness(.85) hue-rotate(-10deg);}
+  100%{filter:brightness(1)   hue-rotate(0deg);}
+}
+@keyframes tonDisk{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* 67108864: 나선 은하 — canvas 기반 실시간 렌더링, box-shadow 고리 */
 .t67108864{
@@ -595,7 +632,7 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
   <div class="info-strip">
     <span class="info-chip">← → ↑ ↓</span>
     <span class="info-chip">터치 스와이프</span>
-    <span class="info-chip gold">🏆 목표: 131,072</span>
+    <span class="info-chip gold" id="ingame-goal-text">🏆 목표: 131,072</span>
     <span class="info-chip red">⚠ 힌트 감점 · 30초 쿨</span>
   </div>
 </div>
@@ -1035,18 +1072,18 @@ function computeMove(dir){
     }
     if(!nonzero.length)continue;
 
-    // Chain-merge with pair passes
-    let cur=nonzero.map(x=>({v:x.v,srcs:[{r:x.r,c:x.c}]}));
-    while(true){
-      let merged=false;const next=[];let i=0;
-      while(i<cur.length){
-        if(i+1<cur.length&&cur[i].v===cur[i+1].v){
-          next.push({v:cur[i].v*2,srcs:[...cur[i].srcs,...cur[i+1].srcs]});
-          i+=2;merged=true;
-        }else{next.push(cur[i]);i++;}
+    // Single-pass merge (standard 2048 rule: each tile merges at most once)
+    const cur=[];
+    let i=0;
+    while(i<nonzero.length){
+      if(i+1<nonzero.length && nonzero[i].v===nonzero[i+1].v){
+        // merge pair
+        cur.push({v:nonzero[i].v*2,srcs:[{r:nonzero[i].r,c:nonzero[i].c},{r:nonzero[i+1].r,c:nonzero[i+1].c}]});
+        i+=2;
+      }else{
+        cur.push({v:nonzero[i].v,srcs:[{r:nonzero[i].r,c:nonzero[i].c}]});
+        i++;
       }
-      if(!merged)break;
-      cur=next;
     }
 
     // Place into newBoard & build plan
@@ -1192,9 +1229,10 @@ function undoMove(){
 function updateGoalText(){
   const el=document.getElementById('start-maxinfo');
   if(el) el.textContent=is5x5?'🏆 목표: 67,108,864 달성':'🏆 목표: 131,072 달성';
-  // 인게임 목표 텍스트가 있으면 함께 업데이트
   const el2=document.getElementById('goal-text');
   if(el2) el2.textContent=is5x5?'🎯 목표: 67,108,864':'🎯 목표: 131,072';
+  const el3=document.getElementById('ingame-goal-text');
+  if(el3) el3.textContent=is5x5?'🏆 목표: 67,108,864':'🏆 목표: 131,072';
 }
 
 /* ══════ END CHECK ══════ */
