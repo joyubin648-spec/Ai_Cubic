@@ -266,6 +266,40 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
 .info-chip.red{color:var(--red);border-color:rgba(239,68,68,.15);}
 @media(max-width:560px){:root{--cell:64px;--gap:7px;--radius:9px;}.tile{font-size:1.1rem;}}
 @media(max-height:750px){:root{--cell:72px;}h1{font-size:1.8rem;}.scorebar{margin-bottom:5px;}.controls{margin-bottom:5px;}.status-bar{margin-bottom:5px;}.combo-banner{height:28px;margin-bottom:4px;}}
+
+/* ══════ DEV PANEL ══════ */
+#dev-panel{display:none;position:fixed;inset:0;z-index:9999;}
+#dev-panel.open{display:block;}
+#dev-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);}
+#dev-drawer{position:absolute;right:0;top:0;bottom:0;width:min(400px,100vw);background:#0d0d18;border-left:1px solid rgba(168,85,247,.3);display:flex;flex-direction:column;overflow-y:auto;padding:0 0 24px;box-shadow:-12px 0 50px rgba(0,0,0,.8);}
+.dev-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;background:#0d0d18;z-index:1;}
+.dev-title{font-family:'Black Han Sans',sans-serif;font-size:1.05rem;color:#a855f7;display:flex;align-items:center;gap:8px;}
+.dev-badge{font-size:.52rem;font-weight:700;background:rgba(168,85,247,.25);border:1px solid rgba(168,85,247,.4);color:#c084fc;padding:2px 7px;border-radius:20px;letter-spacing:.12em;}
+.dev-close{background:rgba(255,255,255,.07);border:none;color:#888;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;}
+.dev-close:hover{background:rgba(255,255,255,.13);color:#fff;}
+.dev-section{padding:16px 20px 0;}
+.dev-section-label{font-size:.6rem;letter-spacing:.18em;color:#666;text-transform:uppercase;margin-bottom:10px;}
+.dev-spawn-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.dev-spawn-btn{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:9px;color:var(--text);font-family:'Black Han Sans',sans-serif;font-size:.78rem;padding:8px 4px;cursor:pointer;transition:background .15s,transform .1s;}
+.dev-spawn-btn:hover{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.4);transform:scale(1.05);}
+.dev-row{display:flex;gap:8px;margin-bottom:8px;align-items:stretch;}
+.dev-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:var(--text);font-size:.82rem;padding:8px 12px;outline:none;font-family:'Noto Sans KR',sans-serif;}
+.dev-input:focus{border-color:rgba(168,85,247,.5);}
+.dev-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:var(--text);font-size:.75rem;padding:8px 12px;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;transition:background .15s;}
+.dev-btn:hover{background:rgba(255,255,255,.12);}
+.dev-btn.accent{background:rgba(168,85,247,.25);border-color:rgba(168,85,247,.4);color:#c084fc;}
+.dev-btn.accent:hover{background:rgba(168,85,247,.4);}
+.dev-btn.red{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#f87171;}
+.dev-btn.red:hover{background:rgba(239,68,68,.28);}
+.dev-rank-list{max-height:220px;overflow-y:auto;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:10px;}
+.dev-rank-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05);font-size:.77rem;}
+.dev-rank-row:last-child{border-bottom:none;}
+.dev-rank-name{flex:1;color:var(--text);}
+.dev-rank-score{color:var(--accent);font-family:'Black Han Sans',sans-serif;font-size:.78rem;}
+.dev-rank-del{background:none;border:none;color:#666;cursor:pointer;font-size:.8rem;padding:2px 6px;border-radius:5px;}
+.dev-rank-del:hover{background:rgba(239,68,68,.2);color:#f87171;}
+.dev-empty{padding:16px;text-align:center;color:#555;font-size:.78rem;}
+.dev-log{margin:14px 20px 0;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px 13px;font-size:.72rem;color:#7c9;font-family:monospace;min-height:36px;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -1314,6 +1348,167 @@ window.addEventListener('beforeunload', ()=>{
   removeMe();
 });
 
+
+
+/* ══════ DEV PANEL ══════ */
+const DEV_CMD = 'dev';
+const DEV_SPAWN_VALS = [2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072];
+
+// 콘솔 명령어 등록
+window[DEV_CMD] = function(cmd){
+  if(cmd===undefined||cmd==='open'||cmd===''){devOpen();return '개발자 패널 열림 ✅';}
+  if(cmd==='close'){devClose();return '닫힘';}
+  if(cmd==='help')return 'dev() 또는 dev("open") — 패널 열기\ndev("close") — 닫기';
+  devOpen();return '개발자 패널 열림 ✅';
+};
+// 짧은 별칭
+Object.defineProperty(window,'__dev__',{get(){devOpen();return '⚙️ Dev panel opened';}});
+
+function devLog(msg){
+  const el=document.getElementById('dev-log');
+  if(el){el.textContent='▶ '+msg;}
+  console.log('[DEV]',msg);
+}
+
+function devOpen(){
+  const panel=document.getElementById('dev-panel');
+  panel.classList.add('open');
+  devBuildSpawnGrid();
+  devRefreshRank();
+  devLog('패널 열림');
+}
+function devClose(){
+  document.getElementById('dev-panel').classList.remove('open');
+}
+
+function devBuildSpawnGrid(){
+  const grid=document.getElementById('dev-spawn-grid');
+  if(!grid||grid.dataset.built)return;
+  grid.dataset.built='1';
+  DEV_SPAWN_VALS.forEach(v=>{
+    const btn=document.createElement('button');
+    btn.className='dev-spawn-btn';
+    btn.textContent=v>=1000?(v>=10000?(v>=100000?v/1000+'K':v):v):v;
+    btn.onclick=()=>devSpawn(v);
+    grid.appendChild(btn);
+  });
+}
+
+function devSpawn(val){
+  if(!board){devLog('게임 보드가 없습니다');return;}
+  const empty=[];
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(!board[r][c])empty.push([r,c]);
+  if(!empty.length){devLog('빈 칸이 없습니다 — 먼저 이동하세요');return;}
+  const[r,c]=empty[~~(Math.random()*empty.length)];
+  board[r][c]=val;
+  mkTileEl(r,c,val,true);
+  if(val>maxTile)maxTile=val;
+  devLog(val.toLocaleString()+' 타일 소환 완료 ('+r+','+c+')');
+}
+
+function devSpawnCustom(){
+  const inp=document.getElementById('dev-custom-val');
+  const v=parseInt(inp.value);
+  if(!v||v<2||v&(v-1)){devLog('2의 거듭제곱 값을 입력하세요 (2,4,8,16…)');return;}
+  devSpawn(v);
+  inp.value='';
+}
+
+function devSetScore(){
+  const inp=document.getElementById('dev-score-val');
+  const v=parseInt(inp.value);
+  if(isNaN(v)||v<0){devLog('유효한 점수를 입력하세요');return;}
+  score=v;
+  updateScoreUI();
+  devLog('점수 → '+v.toLocaleString());
+  inp.value='';
+}
+
+function devClearBest(){
+  if(!confirm('최고 점수 기록을 삭제할까요?'))return;
+  localStorage.removeItem('2048best');
+  bestScore=0;
+  updateScoreUI();
+  devLog('최고 점수 초기화 완료');
+}
+
+function devClearAll(){
+  if(!confirm('localStorage 전체를 초기화합니다. 계속하시겠습니까?'))return;
+  localStorage.clear();
+  devLog('localStorage 초기화 완료 — 새로고침 권장');
+}
+
+function devUpgrade5x5(){
+  devClose();
+  upgradeTo5x5();
+  devLog('5×5 전환 완료');
+}
+
+function devFillBoard(){
+  if(!board){devLog('보드 없음');return;}
+  const vals=[2,4,8,16,32,64,128,256];
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(!board[r][c]){
+      const v=vals[~~(Math.random()*vals.length)];
+      board[r][c]=v;
+      mkTileEl(r,c,v,true);
+    }
+  }
+  devLog('보드 가득 채움');
+}
+
+async function devRefreshRank(){
+  const list=document.getElementById('dev-rank-list');
+  if(!list)return;
+  list.innerHTML='<div class="dev-empty">불러오는 중…</div>';
+  if(!fbConfigOk||!fbDb){list.innerHTML='<div class="dev-empty">Firebase 미연결</div>';return;}
+  try{
+    const {ref:fbRef,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const snap=await get(fbRef(fbDb,'aicubic_records'));
+    const data=snap.val();
+    if(!data){list.innerHTML='<div class="dev-empty">기록 없음</div>';return;}
+    const records=Object.values(data).filter(p=>p).sort((a,b)=>(b.bestScore||0)-(a.bestScore||0));
+    list.innerHTML='';
+    records.forEach(p=>{
+      const row=document.createElement('div');
+      row.className='dev-rank-row';
+      const cm=p.country?COUNTRY_MAP[p.country]:null;
+      row.innerHTML=`<span>${cm?cm.flag:''}</span><span class="dev-rank-name">${esc(p.name||'?')}</span><span class="dev-rank-score">${(p.bestScore||0).toLocaleString()}</span><button class="dev-rank-del" onclick="devDeleteRecord('${p.id}','${esc(p.name||'?')}')">🗑</button>`;
+      list.appendChild(row);
+    });
+    devLog('랭킹 로드: '+records.length+'명');
+  }catch(e){list.innerHTML='<div class="dev-empty">오류: '+e.message+'</div>';}
+}
+
+async function devDeleteRecord(id, name){
+  if(!confirm(name+' 의 기록을 삭제할까요?'))return;
+  try{
+    const {ref:fbRef,remove}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await remove(fbRef(fbDb,'aicubic_records/'+id));
+    devLog(name+' 기록 삭제 완료');
+    devRefreshRank();
+    loadRanking();
+  }catch(e){devLog('삭제 실패: '+e.message);}
+}
+
+async function devDeleteAll(){
+  if(!confirm('랭킹 전체를 삭제합니다. 되돌릴 수 없습니다. 계속하시겠습니까?'))return;
+  if(!confirm('정말로요? 전체 삭제입니다.'))return;
+  try{
+    const {ref:fbRef,remove}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await remove(fbRef(fbDb,'aicubic_records'));
+    devLog('전체 랭킹 삭제 완료');
+    devRefreshRank();
+    loadRanking();
+  }catch(e){devLog('삭제 실패: '+e.message);}
+}
+
+// 콘솔 힌트 출력
+setTimeout(()=>{
+  console.log('%c⚙️ Dev Panel', 'color:#a855f7;font-size:14px;font-weight:bold;');
+  console.log('%c콘솔에서 dev() 를 입력하면 개발자 패널이 열립니다.', 'color:#888;font-size:11px;');
+}, 1000);
+
 /* ══════ BOOT ══════ */
 (function(){
   const best=parseInt(localStorage.getItem('2048best')||'0');
@@ -1323,5 +1518,56 @@ window.addEventListener('beforeunload', ()=>{
   initGridBg();newGame();startPlayerSystem();
 })();
 </script>
+
+<!-- DEV PANEL -->
+<div id="dev-panel">
+  <div id="dev-backdrop" onclick="devClose()"></div>
+  <div id="dev-drawer">
+    <div class="dev-header">
+      <div class="dev-title">⚙️ 개발자 패널 <span class="dev-badge">DEV</span></div>
+      <button class="dev-close" onclick="devClose()">✕</button>
+    </div>
+
+    <div class="dev-section">
+      <div class="dev-section-label">🎲 타일 소환</div>
+      <div class="dev-spawn-grid" id="dev-spawn-grid"></div>
+      <div class="dev-row">
+        <input id="dev-custom-val" class="dev-input" type="number" placeholder="직접 입력 (2의 배수)" min="2" step="2">
+        <button class="dev-btn accent" onclick="devSpawnCustom()">소환</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <div class="dev-section-label">📊 점수 조작</div>
+      <div class="dev-row">
+        <input id="dev-score-val" class="dev-input" type="number" placeholder="점수 직접 설정" min="0">
+        <button class="dev-btn accent" onclick="devSetScore()">설정</button>
+      </div>
+      <div class="dev-row">
+        <button class="dev-btn" onclick="devClearBest()">💀 내 최고기록 삭제</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <div class="dev-section-label">🌐 Firebase 랭킹</div>
+      <div class="dev-rank-list" id="dev-rank-list"><div class="dev-empty">불러오는 중…</div></div>
+      <div class="dev-row" style="gap:6px;flex-wrap:wrap;">
+        <button class="dev-btn red" onclick="devDeleteAll()">🗑️ 전체 삭제</button>
+        <button class="dev-btn" onclick="devRefreshRank()">🔄 새로고침</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <div class="dev-section-label">🔧 기타</div>
+      <div class="dev-row" style="gap:6px;flex-wrap:wrap;">
+        <button class="dev-btn" onclick="devClearAll()">🧹 localStorage 전체 초기화</button>
+        <button class="dev-btn" onclick="devUpgrade5x5()">🟣 5×5 강제 전환</button>
+        <button class="dev-btn" onclick="devFillBoard()">🧩 보드 가득 채우기</button>
+      </div>
+    </div>
+
+    <div class="dev-log" id="dev-log">준비 완료</div>
+  </div>
+</div>
 </body>
 </html>
