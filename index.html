@@ -827,18 +827,37 @@ function clearHints(){document.querySelectorAll('.tile.hint-tile').forEach(e=>e.
 
 /* ══════ NEW GAME ══════ */
 function newGame(){
-  celebShown=false;is5x5=false;moveInProgress=false;lastMoveTime=0;
-  document.getElementById('mode-indicator').classList.remove('show');
-  setGridSize(4);
-  board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
-  score=0;moves=0;maxTile=0;prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;
-  comboCount=0;clearTimeout(comboTimer);hideComboBadge();
-  bestScore=parseInt(localStorage.getItem('2048best')||'0');
-  document.getElementById('overlay').classList.remove('show');
-  clearTiles();clearHints();currentHintDir=null;
-  updateScoreUI();spawnRandom(true);spawnRandom(true);
-  setStatus('준비 완료 — 화살표 키 또는 스와이프로 이동하세요','');
-  updateHintBtn();
+  celebShown=false;moveInProgress=false;lastMoveTime=0;
+  if(is5x5){
+    // 5x5 상태면 5x5 그대로 새 게임
+    localStorage.removeItem('aicubic_5x5');
+    document.getElementById('mode-indicator').classList.add('show');
+    setGridSize(5);
+    board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+    score=0;moves=0;maxTile=0;prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;
+    comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+    bestScore=parseInt(localStorage.getItem('2048best')||'0');
+    document.getElementById('overlay').classList.remove('show');
+    clearTiles();clearHints();currentHintDir=null;
+    updateScoreUI();spawnRandom(true);spawnRandom(true);spawnRandom(true);
+    setStatus('🟣 5×5 새 게임 시작!','success');
+    updateHintBtn();
+    updateGoalText();
+  } else {
+    is5x5=false;
+    document.getElementById('mode-indicator').classList.remove('show');
+    setGridSize(4);
+    board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+    score=0;moves=0;maxTile=0;prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;
+    comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+    bestScore=parseInt(localStorage.getItem('2048best')||'0');
+    document.getElementById('overlay').classList.remove('show');
+    clearTiles();clearHints();currentHintDir=null;
+    updateScoreUI();spawnRandom(true);spawnRandom(true);
+    setStatus('준비 완료 — 화살표 키 또는 스와이프로 이동하세요','');
+    updateHintBtn();
+    updateGoalText();
+  }
 }
 function upgradeTo5x5(){
   document.getElementById('celebrate-screen').classList.remove('show');
@@ -857,7 +876,7 @@ function upgradeTo5x5(){
   }
   bestScore=parseInt(localStorage.getItem('2048best')||'0');
   document.getElementById('overlay').classList.remove('show');
-  updateScoreUI();updateHintBtn();setStatus('🟣 5×5 특별 보드 시작!','success');saveState();
+  updateScoreUI();updateHintBtn();setStatus('🟣 5×5 특별 보드 시작!','success');saveState();updateGoalText();
 }
 
 /* ══════ SPAWN ══════ */
@@ -1048,6 +1067,15 @@ function undoMove(){
   updateScoreUI();updateHintBtn();
   document.getElementById('overlay').classList.remove('show');
   if(comboCount<2)hideComboBadge();
+}
+
+/* ══════ GOAL TEXT ══════ */
+function updateGoalText(){
+  const el=document.getElementById('start-maxinfo');
+  if(el) el.textContent=is5x5?'🏆 목표: 67,108,864 달성':'🏆 목표: 131,072 달성';
+  // 인게임 목표 텍스트가 있으면 함께 업데이트
+  const el2=document.getElementById('goal-text');
+  if(el2) el2.textContent=is5x5?'🎯 목표: 67,108,864':'🎯 목표: 131,072';
 }
 
 /* ══════ END CHECK ══════ */
@@ -1345,6 +1373,7 @@ async function startPlayerSystem(){
 
 window.addEventListener('beforeunload', ()=>{
   clearInterval(hbTimer);
+  saveState();
   removeMe();
 });
 
@@ -1355,11 +1384,12 @@ const DEV_CMD = 'dev';
 const DEV_SPAWN_VALS = [2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072];
 
 // 콘솔 명령어 등록
-window[DEV_CMD] = function(cmd){
-  if(cmd===undefined||cmd==='open'||cmd===''){devOpen();return '개발자 패널 열림 ✅';}
-  if(cmd==='close'){devClose();return '닫힘';}
-  if(cmd==='help')return 'dev() 또는 dev("open") — 패널 열기\ndev("close") — 닫기';
-  devOpen();return '개발자 패널 열림 ✅';
+window.dev = function(){
+  const input = prompt('🔐 개발자 인증','');
+  if(input === null) return;
+  const h = s => s.split('').reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0).toString(16);
+  if(h(input) === h('Yubin8641!@#')){devOpen();}
+  else{alert('❌ 비밀번호가 틀렸습니다.');}
 };
 // 짧은 별칭
 Object.defineProperty(window,'__dev__',{get(){devOpen();return '⚙️ Dev panel opened';}});
@@ -1503,11 +1533,7 @@ async function devDeleteAll(){
   }catch(e){devLog('삭제 실패: '+e.message);}
 }
 
-// 콘솔 힌트 출력
-setTimeout(()=>{
-  console.log('%c⚙️ Dev Panel', 'color:#a855f7;font-size:14px;font-weight:bold;');
-  console.log('%c콘솔에서 dev() 를 입력하면 개발자 패널이 열립니다.', 'color:#888;font-size:11px;');
-}, 1000);
+
 
 /* ══════ BOOT ══════ */
 (function(){
@@ -1515,7 +1541,15 @@ setTimeout(()=>{
   document.getElementById('start-best-score').textContent=best>0?best.toLocaleString():'없음';
   const achieved=localStorage.getItem('aicubic_achieved');const saved=loadSaved();
   document.getElementById('start-best-tile').textContent=(achieved||saved)?'131,072 🏆':'-';
-  initGridBg();newGame();startPlayerSystem();
+  // 저장된 5x5 상태 있으면 복원, 없으면 일반 시작
+  const _saved5=loadSaved();
+  if(_saved5&&_saved5.board&&_saved5.board.length===5){
+    initGridBg();newGame();// 먼저 4x4 초기화
+    upgradeTo5x5();// 이후 5x5로 복원
+  } else {
+    initGridBg();newGame();
+  }
+  startPlayerSystem();
 })();
 </script>
 
