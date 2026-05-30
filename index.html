@@ -258,6 +258,16 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
 .hint-penalty-info{font-size:.72rem;color:var(--red);text-align:center;margin-bottom:10px;opacity:.8;}
 .hint-apply-btn{width:100%;padding:10px;background:linear-gradient(130deg,rgba(168,85,247,.7),rgba(124,58,237,.7));border:none;border-radius:11px;cursor:pointer;font-family:'Black Han Sans',sans-serif;font-size:.9rem;color:#fff;transition:opacity .18s,transform .1s;}
 .hint-apply-btn:hover{opacity:.88;transform:translateY(-1px);}
+.t262144{background:linear-gradient(135deg,#ff006e,#8338ec,#3a86ff);color:#fff;animation:galaxy 2.5s linear infinite;}
+.t524288{background:linear-gradient(135deg,#f72585,#7209b7,#3f37c9,#4cc9f0);color:#fff;animation:galaxy 2s linear infinite;}
+.t1048576{background:linear-gradient(135deg,#480ca8,#3a0ca3,#4361ee,#4cc9f0);color:#fff;animation:galaxy 1.8s linear infinite;}
+.t2097152{background:linear-gradient(135deg,#10002b,#240046,#3c096c,#7b2d8b,#e0aaff);color:#fff;animation:galaxy 1.5s linear infinite;}
+.t4194304{background:linear-gradient(135deg,#03045e,#023e8a,#0077b6,#00b4d8,#90e0ef);color:#fff;animation:galaxy 1.3s linear infinite;}
+.t8388608{background:linear-gradient(135deg,#004b23,#006400,#38b000,#70e000,#ccff33);color:#000;animation:galaxy 1.1s linear infinite;}
+.t16777216{background:linear-gradient(135deg,#ff0000,#ff4500,#ff8c00,#ffd700,#fff);color:#000;animation:galaxy .9s linear infinite;}
+.t33554432{background:linear-gradient(135deg,#fff,#ffd700,#ff8c00,#ff0000,#8b0000);color:#000;animation:galaxy .7s linear infinite;}
+.t67108864{background:conic-gradient(from 0deg,#ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b00ff,#ff0000);color:#fff;animation:galaxy .5s linear infinite;box-shadow:0 0 30px 8px rgba(255,255,255,.5);}
+@keyframes galaxy{0%{filter:hue-rotate(0deg) brightness(1.1);background-position:0% 50%;}50%{filter:hue-rotate(180deg) brightness(1.4);}100%{filter:hue-rotate(360deg) brightness(1.1);}}
 .hint-error{text-align:center;padding:10px 0;color:var(--red);font-size:.8rem;line-height:1.65;}
 .hint-counter{font-size:.62rem;color:var(--subtext);text-align:center;margin-top:7px;}
 .info-strip{margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;}
@@ -768,12 +778,14 @@ function cellPx(){return parseInt(getComputedStyle(document.documentElement).get
 function step(){return cellPx()+gapPx();}
 function ANIM_MS(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--anim'));}
 function tTx(r,c){const s=step();return`translate(${c*s}px,${r*s}px)`;}
-const KNOWN_VALS=[2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072];
+const KNOWN_VALS=[2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304,8388608,16777216,33554432,67108864];
 function tileClass(v){return KNOWN_VALS.includes(v)?'t'+v:'thigh';}
 function tileFontSize(v){
-  if(v>=131072)return is5x5?'.5rem':'.62rem';if(v>=65536)return is5x5?'.58rem':'.7rem';
-  if(v>=8192)return is5x5?'.68rem':'.8rem';if(v>=1024)return is5x5?'.78rem':'.92rem';
-  if(v>=128)return is5x5?'.88rem':'1.1rem';return is5x5?'1.05rem':'1.5rem';
+  if(v>=67108864)return is5x5?'.32rem':'.38rem';
+  if(v>=1048576)return is5x5?'.36rem':'.42rem';
+  if(v>=131072)return is5x5?'.44rem':'.54rem';if(v>=65536)return is5x5?'.52rem':'.64rem';
+  if(v>=8192)return is5x5?'.64rem':'.78rem';if(v>=1024)return is5x5?'.76rem':'.9rem';
+  if(v>=128)return is5x5?'.86rem':'1.05rem';return is5x5?'1rem':'1.45rem';
 }
 
 /* ══════ COMBO ══════ */
@@ -1411,17 +1423,37 @@ function devClose(){
   document.getElementById('dev-panel').classList.remove('open');
 }
 
+const DEV_SPAWN_VALS_5X5=[262144,524288,1048576,2097152,4194304,8388608,16777216,33554432,67108864];
 function devBuildSpawnGrid(){
+  // 4x4 그리드
   const grid=document.getElementById('dev-spawn-grid');
-  if(!grid||grid.dataset.built)return;
-  grid.dataset.built='1';
-  DEV_SPAWN_VALS.forEach(v=>{
-    const btn=document.createElement('button');
-    btn.className='dev-spawn-btn';
-    btn.textContent=v>=1000?(v>=10000?(v>=100000?v/1000+'K':v):v):v;
-    btn.onclick=()=>devSpawn(v);
-    grid.appendChild(btn);
-  });
+  if(grid&&!grid.dataset.built){
+    grid.dataset.built='1';
+    DEV_SPAWN_VALS.forEach(v=>{
+      const btn=document.createElement('button');
+      btn.className='dev-spawn-btn';
+      const lbl=v>=1000000?(v/1000000)+'M':v>=1000?(v/1000)+'K':String(v);
+      btn.textContent=lbl;
+      btn.onclick=()=>devSpawn(v);
+      grid.appendChild(btn);
+    });
+  }
+  // 5x5 전용 그리드
+  const grid5=document.getElementById('dev-spawn-grid-5x5');
+  if(grid5&&!grid5.dataset.built){
+    grid5.dataset.built='1';
+    DEV_SPAWN_VALS_5X5.forEach(v=>{
+      const btn=document.createElement('button');
+      btn.className='dev-spawn-btn galaxy-btn';
+      const lbl=v>=1000000?(v/1000000).toFixed(v%1000000===0?0:1)+'M':v>=1000?(v/1000)+'K':String(v);
+      btn.textContent=lbl;
+      btn.style.background=v===67108864?'conic-gradient(from 0deg,#f00,#ff7700,#ff0,#0f0,#00f,#8b00ff,#f00)':'linear-gradient(135deg,#240046,#7b2d8b,#4cc9f0)';
+      btn.style.color='#fff';
+      btn.style.border=v===67108864?'2px solid #fff':'1px solid rgba(168,85,247,.4)';
+      btn.onclick=()=>devSpawn(v);
+      grid5.appendChild(btn);
+    });
+  }
 }
 
 function devSpawn(val){
@@ -1468,6 +1500,24 @@ function devClearAll(){
   devLog('localStorage 초기화 완료 — 새로고침 권장');
 }
 
+function devDowngrade4x4(){
+  if(!is5x5){devLog('이미 4×4 입니다');return;}
+  if(!confirm('4×4로 전환합니다. 현재 보드가 초기화됩니다. 계속할까요?'))return;
+  localStorage.removeItem('aicubic_5x5');
+  is5x5=false;
+  document.getElementById('mode-indicator').classList.remove('show');
+  setGridSize(4);
+  board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  score=0;moves=0;maxTile=0;prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;
+  comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+  document.getElementById('overlay').classList.remove('show');
+  clearTiles();clearHints();currentHintDir=null;
+  updateScoreUI();spawnRandom(true);spawnRandom(true);
+  updateGoalText();
+  setStatus('◀ 4×4 보드로 전환됨','');
+  updateHintBtn();
+  devLog('4×4 전환 완료');
+}
 function devUpgrade5x5(){
   devClose();
   upgradeTo5x5();
@@ -1592,10 +1642,16 @@ async function devDeleteAll(){
     </div>
 
     <div class="dev-section">
+      <div class="dev-section-label">🌌 5×5 전용 타일 소환</div>
+      <div class="dev-spawn-grid" id="dev-spawn-grid-5x5"></div>
+    </div>
+
+    <div class="dev-section">
       <div class="dev-section-label">🔧 기타</div>
       <div class="dev-row" style="gap:6px;flex-wrap:wrap;">
         <button class="dev-btn" onclick="devClearAll()">🧹 localStorage 전체 초기화</button>
         <button class="dev-btn" onclick="devUpgrade5x5()">🟣 5×5 강제 전환</button>
+        <button class="dev-btn red" onclick="devDowngrade4x4()">◀ 4×4로 전환</button>
         <button class="dev-btn" onclick="devFillBoard()">🧩 보드 가득 채우기</button>
       </div>
     </div>
