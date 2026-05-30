@@ -1147,6 +1147,9 @@ function move(dir){
   let hasMoved=false;
 
   // Phase 1: slide all tiles to their final destinations simultaneously
+  // snapshot step/cell ONCE to avoid stale getComputedStyle values mid-move
+  const _cs=cellPx(),_s=step();
+  const tTxSnap=(r,c)=>`translate(${c*_s}px,${r*_s}px)`;
   plan.forEach(p=>{
     const id=posMap[p.fromR+','+p.fromC];
     if(id==null||!tileMap[id])return;
@@ -1154,7 +1157,8 @@ function move(dir){
     if(p.toR!==tile.r||p.toC!==tile.c)hasMoved=true;
     // Update logical position immediately to prevent double-use
     tile.r=p.toR;tile.c=p.toC;
-    const tx=tTx(p.toR,p.toC);
+    const tx=tTxSnap(p.toR,p.toC);
+    tile.el.style.width=_cs+'px';tile.el.style.height=_cs+'px';
     tile.el.style.setProperty('--base-tx',tx);
     tile.el.style.transform=tx;
     if(p.loser)loserIds.add(id);
@@ -1609,10 +1613,12 @@ function devSpawn(val){
   const[r,c]=empty[~~(Math.random()*empty.length)];
   board[r][c]=val;
   if(val>maxTile)maxTile=val;
-  // 전체 타일 재렌더: CSS 변수(--cell, --gap) 재계산 후 모든 타일 위치 동기화
-  clearTiles();
-  for(let rr=0;rr<SIZE;rr++)for(let cc=0;cc<SIZE;cc++)if(board[rr][cc])mkTileEl(rr,cc,board[rr][cc],rr===r&&cc===c);
-  updateScoreUI();updateHintBtn();
+  // rAF로 한 프레임 대기 → CSS 변수(--cell, --gap)가 완전히 반영된 후 전체 재렌더
+  requestAnimationFrame(()=>{
+    clearTiles();
+    for(let rr=0;rr<SIZE;rr++)for(let cc=0;cc<SIZE;cc++)if(board[rr][cc])mkTileEl(rr,cc,board[rr][cc],rr===r&&cc===c);
+    updateScoreUI();updateHintBtn();
+  });
   devLog(val.toLocaleString()+' 타일 소환 완료 ('+r+','+c+')');
 }
 
