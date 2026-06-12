@@ -287,57 +287,35 @@ h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.9rem,5vw,3.2rem);le
 .t16777216{background:radial-gradient(ellipse at 50% 50%,#fff 0%,#ffe066 15%,#ff4400 40%,#7700cc 70%,#000 100%);color:#fff;text-shadow:0 0 12px #fff;animation:remnant 1.4s ease-in-out infinite;}
 @keyframes remnant{0%,100%{box-shadow:0 0 20px rgba(200,100,255,.6),0 0 40px rgba(255,100,0,.3);filter:brightness(1.1)}50%{box-shadow:0 0 50px rgba(220,120,255,.9),0 0 80px rgba(255,150,0,.5);filter:brightness(1.6)}}
 
-/* 33554432: TON618 블랙홀 — 강착 원반 + 사건 지평선 */
+/* 33554432: 인터스텔라 블랙홀 — canvas 강착 원반 */
 .t33554432{
-  background:
-    radial-gradient(circle at 50% 50%, #000 0%, #000 28%, transparent 28%),
-    conic-gradient(from 0deg at 50% 50%,
-      #ff6a00 0deg, #ffb300 18deg, #ff4500 36deg,
-      #c00 54deg, #600 72deg, #000 90deg,
-      #000 162deg,
-      #1a0030 180deg, #3a0060 198deg, #6000aa 216deg,
-      #3a0060 234deg, #000 252deg,
-      #000 306deg,
-      #ff4500 324deg, #ff8c00 342deg, #ff6a00 360deg
-    );
-  color:#ffcc00;
-  text-shadow:0 0 6px rgba(255,180,0,1),0 0 14px rgba(255,100,0,.7);
-  animation:tonBH 3s linear infinite;
+  background:#000;
+  color:transparent !important;
+  text-shadow:none !important;
   position:relative;
+  overflow:visible !important;
 }
-.t33554432::before{
-  content:'';position:absolute;inset:0;border-radius:inherit;
-  background:
-    radial-gradient(circle at 50% 50%, #000 0%, #000 32%, transparent 32%),
-    conic-gradient(from 180deg at 50% 50%,
-      transparent 0deg,
-      rgba(255,120,0,.6) 15deg, rgba(255,200,60,.8) 30deg,
-      rgba(255,80,0,.5) 45deg, transparent 60deg,
-      transparent 150deg,
-      rgba(80,0,180,.4) 165deg, rgba(140,40,255,.6) 185deg,
-      rgba(80,0,180,.4) 200deg, transparent 215deg,
-      transparent 300deg,
-      rgba(255,140,0,.4) 330deg, transparent 360deg
-    );
-  animation:tonDisk 2s linear infinite reverse;
-  mix-blend-mode:screen;
+.t33554432 canvas.bh-canvas{
+  position:absolute;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:0;
+  top:0;left:0;
 }
-.t33554432::after{
-  content:'';position:absolute;inset:0;border-radius:inherit;
-  background:radial-gradient(circle at 50% 50%,
-    #000 0%, #000 30%,
-    rgba(255,80,0,.05) 32%, rgba(255,120,0,.12) 38%,
-    rgba(255,160,0,.06) 44%, transparent 50%,
-    transparent 100%
-  );
+.t33554432 .bh-label{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:inherit;
+  color:#fff8e0;
+  text-shadow:0 0 5px #000,0 0 10px #000,0 0 4px rgba(255,200,80,.9);
+  pointer-events:none;
+  font-family:inherit;
+  font-weight:inherit;
 }
-@keyframes tonBH{
-  0%  {filter:brightness(1)   hue-rotate(0deg);}
-  33% {filter:brightness(1.3) hue-rotate(15deg);}
-  66% {filter:brightness(.85) hue-rotate(-10deg);}
-  100%{filter:brightness(1)   hue-rotate(0deg);}
-}
-@keyframes tonDisk{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* 67108864: 나선 은하 — canvas 기반 실시간 렌더링, box-shadow 고리 */
 .t67108864{
@@ -973,12 +951,140 @@ function mkTileEl(r,c,v,animate){
   const el=document.createElement('div'),id=nextId++,tx=tTx(r,c),cs=cellPx();
   el.className='tile '+tileClass(v);
   el.style.cssText=`--base-tx:${tx};transform:${tx};width:${cs}px;height:${cs}px;font-size:${tileFontSize(v)};`;
-  el.textContent=v;el.dataset.id=id;
+  el.dataset.id=id;
+  if(v===33554432){
+    const cvs=document.createElement('canvas');
+    cvs.className='bh-canvas';
+    cvs.width=cs;cvs.height=cs;
+    cvs.style.width=cs+'px';cvs.style.height=cs+'px';
+    el.appendChild(cvs);
+    const lbl=document.createElement('div');
+    lbl.className='bh-label';lbl.textContent=v.toLocaleString();
+    lbl.style.fontSize=tileFontSize(v);
+    el.appendChild(lbl);
+    // DOM에 붙은 후 실제 렌더 크기로 canvas 재조정
+    requestAnimationFrame(()=>{
+      const actual=el.offsetWidth||cs;
+      if(actual!==cs){cvs.width=actual;cvs.height=actual;cvs.style.width=actual+'px';cvs.style.height=actual+'px';}
+      startBHCanvas(cvs,actual);
+    });
+  } else {
+    el.textContent=v;
+  }
   if(animate){el.classList.add('is-new');el.addEventListener('animationend',()=>el.classList.remove('is-new'),{once:true});}
   document.getElementById('tile-layer').appendChild(el);
   tileMap[id]={v,r,c,el};return id;
 }
-function clearTiles(){Object.values(tileMap).forEach(t=>t.el.remove());tileMap={};nextId=1;}
+
+function startBHCanvas(cvs,size){
+  const ctx=cvs.getContext('2d');
+  const cx=size/2, cy=size/2;
+  const holeR = size*0.24;   // 사건 지평선 반지름
+  const diskRx = size*0.46;  // 원반 가로 반지름
+  const diskRy = size*0.13;  // 원반 세로 반지름 (납작하게)
+  const diskCy = cy + size*0.02; // 원반 중심 약간 아래
+  let t=0, rafId=null, alive=true;
+
+  cvs._bhStop=function(){alive=false;if(rafId)cancelAnimationFrame(rafId);rafId=null;};
+
+  function frame(){
+    if(!alive)return;
+    if(!cvs.isConnected){alive=false;return;}
+    ctx.clearRect(0,0,size,size);
+
+    // ── 1. 강착원반 뒷면 (블랙홀 뒤, 위쪽 절반만 보임) ──
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, size, cy); // 위쪽 절반만
+    ctx.clip();
+    drawDisk(0.82);
+    ctx.restore();
+
+    // ── 2. 사건 지평선 (완전한 검은 원) ──
+    const bhG = ctx.createRadialGradient(cx,cy,holeR*0.6, cx,cy,holeR*1.1);
+    bhG.addColorStop(0,   '#000000');
+    bhG.addColorStop(0.8, '#000000');
+    bhG.addColorStop(1,   'rgba(0,0,0,0.85)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, holeR*1.08, 0, Math.PI*2);
+    ctx.fillStyle = bhG;
+    ctx.fill();
+
+    // ── 3. 포토링 (아인슈타인 링 — 사건지평선 바로 바깥) ──
+    const pr = holeR*1.18;
+    const pw = size*0.022;
+    const bright = 0.6 + 0.4*Math.sin(t*1.8);
+    const ringG = ctx.createRadialGradient(cx,cy,pr-pw, cx,cy,pr+pw*2);
+    ringG.addColorStop(0,   'rgba(255,200,80,0)');
+    ringG.addColorStop(0.3, `rgba(255,230,120,${0.55*bright})`);
+    ringG.addColorStop(0.5, `rgba(255,250,180,${0.85*bright})`);
+    ringG.addColorStop(0.7, `rgba(255,210,90,${0.5*bright})`);
+    ringG.addColorStop(1,   'rgba(255,160,40,0)');
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy, pr+pw*2, 0, Math.PI*2);
+    ctx.arc(cx,cy, pr-pw,   0, Math.PI*2, true);
+    ctx.closePath();
+    ctx.fillStyle = ringG;
+    ctx.fill('evenodd');
+    ctx.restore();
+
+    // ── 4. 강착원반 앞면 (블랙홀 앞, 아래쪽 절반) ──
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, cy, size, size); // 아래쪽 절반만
+    ctx.clip();
+    drawDisk(1.0);
+    ctx.restore();
+
+    // ── 5. 코로나 글로우 (중심 주변 희미한 빛) ──
+    const cg = ctx.createRadialGradient(cx,cy, holeR*1.05, cx,cy, holeR*2.2);
+    cg.addColorStop(0,   `rgba(255,140,30,${0.12+0.06*Math.sin(t*2.3)})`);
+    cg.addColorStop(0.4, `rgba(255,100,10,0.06)`);
+    cg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.beginPath();ctx.arc(cx,cy,holeR*2.2,0,Math.PI*2);
+    ctx.fillStyle=cg;ctx.fill();
+
+    t += 0.022;
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function drawDisk(frontMult){
+    // 원반: 중심에서 바깥으로 — 검정→주황→밝은노랑→주황→검정
+    const pulse = 1 + 0.04*Math.sin(t*3.1);
+    const g = ctx.createRadialGradient(cx,diskCy, holeR*0.9, cx,diskCy, diskRx*pulse);
+    g.addColorStop(0,    'rgba(0,0,0,0)');
+    g.addColorStop(0.12, 'rgba(80,20,0,0)');
+    g.addColorStop(0.22, `rgba(200,60,5,${0.5*frontMult})`);
+    g.addColorStop(0.32, `rgba(255,120,20,${0.82*frontMult})`);
+    g.addColorStop(0.42, `rgba(255,185,55,${0.97*frontMult})`);
+    g.addColorStop(0.50, `rgba(255,230,120,${frontMult})`);
+    g.addColorStop(0.58, `rgba(255,180,50,${0.95*frontMult})`);
+    g.addColorStop(0.68, `rgba(255,110,15,${0.78*frontMult})`);
+    g.addColorStop(0.80, `rgba(160,45,0,${0.45*frontMult})`);
+    g.addColorStop(0.92, `rgba(50,8,0,${0.18*frontMult})`);
+    g.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, diskCy, diskRx*pulse, diskRy, 0, 0, Math.PI*2);
+    ctx.clip();
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,size,size);
+    ctx.restore();
+  }
+
+  rafId = requestAnimationFrame(frame);
+}
+
+function clearTiles(){
+  Object.values(tileMap).forEach(t=>{
+    // BH canvas 루프 종료
+    const cvs=t.el.querySelector('canvas.bh-canvas');
+    if(cvs&&cvs._bhStop)cvs._bhStop();
+    t.el.remove();
+  });
+  tileMap={};nextId=1;
+}
 function clearHints(){document.querySelectorAll('.tile.hint-tile').forEach(e=>e.classList.remove('hint-tile'));}
 
 /* ══════ NEW GAME ══════ */
@@ -995,10 +1101,12 @@ function newGame(){
     bestScore=parseInt(localStorage.getItem('2048best')||'0');
     document.getElementById('overlay').classList.remove('show');
     clearTiles();clearHints();currentHintDir=null;
-    updateScoreUI();spawnRandom(true);spawnRandom(true);spawnRandom(true);
-    setStatus('🟣 5×5 새 게임 시작!','success');
-    updateHintBtn();
-    updateGoalText();
+    setGridSize(5);
+    requestAnimationFrame(()=>{
+      spawnRandom(true);spawnRandom(true);spawnRandom(true);
+      updateScoreUI();updateHintBtn();updateGoalText();
+      setStatus('🟣 5×5 새 게임 시작!','success');
+    });
   } else {
     is5x5=false;
     document.getElementById('mode-indicator').classList.remove('show');
@@ -1019,20 +1127,24 @@ function upgradeTo5x5(){
   document.getElementById('celebrate-screen').classList.remove('show');
   document.getElementById('celebrate-screen').style.display='none';
   is5x5=true;moveInProgress=false;lastMoveTime=0;
-  document.getElementById('mode-indicator').classList.add('show');setGridSize(5);
+  document.getElementById('mode-indicator').classList.add('show');
+  setGridSize(5);
   const saved=loadSaved();
-  if(saved&&saved.board&&saved.board.length===5){
-    board=saved.board;score=saved.score||score;moves=saved.moves||moves;maxTile=saved.maxTile||maxTile;
-    clearTiles();for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c])mkTileEl(r,c,board[r][c],false);
-  }else{
-    board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
-    prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+  // rAF로 CSS 변수 반영 후 타일 렌더 (튀어나오는 버그 방지)
+  requestAnimationFrame(()=>{
     clearTiles();clearHints();currentHintDir=null;
-    spawnRandom(true);spawnRandom(true);spawnRandom(true);
-  }
-  bestScore=parseInt(localStorage.getItem('2048best')||'0');
-  document.getElementById('overlay').classList.remove('show');
-  updateScoreUI();updateHintBtn();setStatus('🟣 5×5 특별 보드 시작!','success');saveState();updateGoalText();
+    if(saved&&saved.board&&saved.board.length===5){
+      board=saved.board;score=saved.score||score;moves=saved.moves||moves;maxTile=saved.maxTile||maxTile;
+      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c])mkTileEl(r,c,board[r][c],false);
+    }else{
+      board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+      prevBoard=null;prevScore=0;prevMoves=0;prevCombo=0;comboCount=0;clearTimeout(comboTimer);hideComboBadge();
+      spawnRandom(true);spawnRandom(true);spawnRandom(true);
+    }
+    bestScore=parseInt(localStorage.getItem('2048best')||'0');
+    document.getElementById('overlay').classList.remove('show');
+    updateScoreUI();updateHintBtn();setStatus('🟣 5×5 특별 보드 시작!','success');saveState();updateGoalText();
+  });
 }
 
 /* ══════ SPAWN ══════ */
@@ -1184,7 +1296,25 @@ function move(dir){
       tile.el.className='tile '+tileClass(mergeVal)+' is-merge';
       tile.el.style.fontSize=tileFontSize(mergeVal);
       tile.el.style.width=cs+'px';tile.el.style.height=cs+'px';
-      tile.el.textContent=mergeVal;
+      if(mergeVal===33554432){
+        // 기존 BH 루프 먼저 정지
+        const oldCvs=tile.el.querySelector('canvas.bh-canvas');
+        if(oldCvs&&oldCvs._bhStop)oldCvs._bhStop();
+        tile.el.innerHTML='';
+        const cvs2=document.createElement('canvas');cvs2.className='bh-canvas';
+        cvs2.width=cs;cvs2.height=cs;cvs2.style.width=cs+'px';cvs2.style.height=cs+'px';
+        tile.el.appendChild(cvs2);
+        const lbl2=document.createElement('div');lbl2.className='bh-label';
+        lbl2.textContent=mergeVal.toLocaleString();lbl2.style.fontSize=tileFontSize(mergeVal);
+        tile.el.appendChild(lbl2);
+        startBHCanvas(cvs2,cs);
+      } else {
+        // 혹시 이전에 BH였다면 루프 정지
+        const oldCvs=tile.el.querySelector('canvas.bh-canvas');
+        if(oldCvs&&oldCvs._bhStop)oldCvs._bhStop();
+        tile.el.innerHTML='';
+        tile.el.textContent=mergeVal;
+      }
       tile.el.style.setProperty('--base-tx',tx);tile.el.style.transform=tx;
       tile.el.addEventListener('animationend',()=>tile.el.classList.remove('is-merge'),{once:true});
       setTimeout(()=>playMergeSound(mergeVal,comboCount),sndDelay);sndDelay+=60;
@@ -1613,12 +1743,13 @@ function devSpawn(val){
   const[r,c]=empty[~~(Math.random()*empty.length)];
   board[r][c]=val;
   if(val>maxTile)maxTile=val;
-  // rAF로 한 프레임 대기 → CSS 변수(--cell, --gap)가 완전히 반영된 후 전체 재렌더
-  requestAnimationFrame(()=>{
+  // double rAF: 첫 번째로 upgradeTo5x5의 rAF(CSS 변수 반영)가 끝난 후
+  // 두 번째 프레임에서 확실히 올바른 cellPx로 렌더
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
     clearTiles();
     for(let rr=0;rr<SIZE;rr++)for(let cc=0;cc<SIZE;cc++)if(board[rr][cc])mkTileEl(rr,cc,board[rr][cc],rr===r&&cc===c);
     updateScoreUI();updateHintBtn();
-  });
+  }));
   devLog(val.toLocaleString()+' 타일 소환 완료 ('+r+','+c+')');
 }
 
@@ -1696,9 +1827,11 @@ function devFillBoard(){
       board[r][c]=vals[~~(Math.random()*vals.length)];
     }
   }
-  clearTiles();
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c])mkTileEl(r,c,board[r][c],false);
-  updateScoreUI();updateHintBtn();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    clearTiles();
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c])mkTileEl(r,c,board[r][c],false);
+    updateScoreUI();updateHintBtn();
+  }));
   devLog('보드 가득 채움');
 }
 
